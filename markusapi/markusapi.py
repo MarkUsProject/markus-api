@@ -86,7 +86,7 @@ class Markus:
         Return a list of all groups associated with the given assignment.
         """
         params = None
-        path = Markus.get_path(assignments=assignment_id) + '.json'
+        path = Markus.get_path(assignments=assignment_id, groups=None) + '.json'
         response = self.submit_request(params, path, 'GET')
         return Markus.decode_json_response(response)
 
