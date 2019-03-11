@@ -89,7 +89,7 @@ class TestMarkusAPICalls:
     @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
     def test_get_groups_by_name(self, get_path, decode_json_response, submit_request, kwargs):
         dummy_markus().get_groups_by_name(**kwargs)
-        get_path.assert_called_with(assignments=kwargs['assignment_id'], group_ids_by_name=None)
+        get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=None, group_ids_by_name=None)
         submit_request.assert_called_with(None, f'{get_path.return_value}.json', 'GET')
         decode_json_response.assert_called_with(submit_request.return_value)   
 

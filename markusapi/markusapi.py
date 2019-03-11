@@ -95,7 +95,7 @@ class Markus:
         Return a dictionary mapping group names to group ids.
         """
         params = None
-        path = Markus.get_path(assignments=assignment_id, group_ids_by_name=None) + '.json'
+        path = Markus.get_path(assignments=assignment_id, groups=None, group_ids_by_name=None) + '.json'
         response = self.submit_request(params, path, 'GET')
         return Markus.decode_json_response(response)
 
