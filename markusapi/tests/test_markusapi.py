@@ -188,6 +188,16 @@ class TestMarkusAPICalls:
         get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'], add_annotations=None)
         submit_request.assert_called_with(params, get_path.return_value, 'POST', 'application/json')
 
+    @given(kwargs=strategies_from_signature(Markus.get_annotations))
+    @patch.object(Markus, 'submit_request', return_value=DUMMY_RETURNS['submit_request'])
+    @patch.object(Markus, 'decode_json_response')
+    @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
+    def test_get_annotations(self, get_path, decode_json_response, submit_request, kwargs):
+        dummy_markus().get_annotations(**kwargs)
+        get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'], annotations=None)
+        submit_request.assert_called_with(None, f'{get_path.return_value}.json', 'GET')
+        decode_json_response.assert_called_with(submit_request.return_value)
+
     @given(kwargs=strategies_from_signature(Markus.update_marks_single_group))
     @patch.object(Markus, 'submit_request', return_value=DUMMY_RETURNS['submit_request'])
     @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
