@@ -196,6 +196,28 @@ class TestMarkusAPICalls:
         get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'], update_marks=None)
         submit_request.assert_called_with(kwargs['criteria_mark_map'], get_path.return_value, 'PUT')
 
+    @given(kwargs=strategies_from_signature(Markus.upload_file_to_repo), filename=file_name_strategy())
+    @patch.object(Markus, 'submit_request', return_value=DUMMY_RETURNS['submit_request'])
+    @patch.object(Markus, 'decode_json_response', return_value=[DUMMY_RETURNS['decode_json_response']])
+    @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
+    def test_upload_file_to_repo(self, get_path, decode_json_response, submit_request, kwargs, filename):
+        dummy_markus().upload_file_to_repo(**{**kwargs, 'file_path': filename})
+        get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'], submission_files=None)
+        params, path, request_type, _content_type  = submit_request.call_args[0]
+        assert path == get_path.return_value
+        assert params.keys() == {'filename', 'file_content', 'mime_type'}
+
+    @given(kwargs=strategies_from_signature(Markus.remove_file_from_repo), filename=file_name_strategy())
+    @patch.object(Markus, 'submit_request', return_value=DUMMY_RETURNS['submit_request'])
+    @patch.object(Markus, 'decode_json_response', return_value=[DUMMY_RETURNS['decode_json_response']])
+    @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
+    def test_remove_file_from_repo(self, get_path, decode_json_response, submit_request, kwargs, filename):
+        dummy_markus().remove_file_from_repo(**{**kwargs, 'file_path': filename})
+        get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'], submission_files=None, remove_file=None)
+        params, path, request_type  = submit_request.call_args[0]
+        assert path == get_path.return_value
+        assert params.keys() == {'filename'}
+
 class TestMarkusAPIHelpers:
 
     @given(kwargs=strategies_from_signature(Markus.submit_request),
