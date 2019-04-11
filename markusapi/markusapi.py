@@ -236,7 +236,7 @@ class Markus:
             'marking_state': new_marking_state
         }
         path = Markus.get_path(assignments=assignment_id, groups=group_id, update_marking_state=None)
-        return self.submit_request(params, path, 'DELETE')
+        return self.submit_request(params, path, 'PUT')
 
     def upload_file_to_repo(self, assignment_id: int, group_id: int, file_path: str, 
                             contents: Union[str, bytes], mime_type: Optional[str] = None) -> List[str]:
