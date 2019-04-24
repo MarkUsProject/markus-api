@@ -210,6 +210,16 @@ class Markus:
         path = Markus.get_path(assignments=assignment_id, groups=group_id, add_annotations=None)
         return self.submit_request(params, path, 'POST', 'application/json')
 
+    def get_annotations(self, assignment_id: int, group_id: Optional[int] = None) -> List[dict]:
+        """
+        Return a list of dictionaries containing information for each annotation in the assignment
+        with id = assignment_id. If group_id is not None, return only annotations for the given group.
+        """
+        params = None
+        path = Markus.get_path(assignments=assignment_id, groups=group_id, annotations=None) + '.json'
+        response = self.submit_request(params, path, 'GET')
+        return Markus.decode_json_response(response)
+
     def update_marks_single_group(self, criteria_mark_map: dict, assignment_id: int, group_id: int) -> List[str]:
         """
         Update the marks of a single group. 
