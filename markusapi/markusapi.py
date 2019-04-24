@@ -160,10 +160,9 @@ class Markus:
             request_type = 'PUT'
 
         if mime_type is None:
-            mime_type = mimetypes.guess_type(title)[0]
-        
-        if mime_type is None:
-            raise ValueError(f'if the mime_type argument is not given you must provide a title file with a valid extension')
+            mime_type = mimetypes.guess_type(title)[0]        
+            if mime_type is None:
+                raise ValueError('if the mime_type argument is not given you must provide a title file with a valid extension')
 
         if isinstance(contents, str):
             params = {
@@ -252,10 +251,9 @@ class Markus:
         path = Markus.get_path(assignments=assignment_id, groups=group_id, submission_files=None)
     
         if mime_type is None:
-            mime_type = mimetypes.guess_type(file_path)[0]
-        
-        if mime_type is None:
-            raise ValueError(f'if the mime_type argument is not given you must provide a title file with a valid extension')
+            mime_type = mimetypes.guess_type(file_path)[0]        
+            if mime_type is None:
+                raise ValueError('if the mime_type argument is not given you must provide a title file_path with a valid extension')
         
         if isinstance(contents, str):
             params = {
