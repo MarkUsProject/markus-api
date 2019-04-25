@@ -160,10 +160,9 @@ class Markus:
             request_type = 'PUT'
 
         if mime_type is None:
-            mime_type = mimetypes.guess_type(title)[0]
-        
-        if mime_type is None:
-            raise ValueError(f'if the mime_type argument is not given you must provide a title file with a valid extension')
+            mime_type = mimetypes.guess_type(title)[0]        
+            if mime_type is None:
+                raise ValueError('if the mime_type argument is not given you must provide a title file with a valid extension')
 
         if isinstance(contents, str):
             params = {
@@ -247,6 +246,53 @@ class Markus:
         }
         path = Markus.get_path(assignments=assignment_id, groups=group_id, update_marking_state=None)
         return self.submit_request(params, path, 'PUT')
+
+    def upload_file_to_repo(self, assignment_id: int, group_id: int, file_path: str, 
+                            contents: Union[str, bytes], mime_type: Optional[str] = None) -> List[str]:
+        """ 
+        Upload a file at file_path with content contents to the assignment directory 
+        in the repo for group with id group_id. 
+
+        The file_path should be a relative path from the assignment directory of a repository.
+        For example, if you want to upload a file to A1/somesubdir/myfile.txt then the short identifier
+        of the assignment with id assignment_id should be A1 and the file_path argument should be:
+        'somesubdir/myfile.txt'
+        """
+        path = Markus.get_path(assignments=assignment_id, groups=group_id, submission_files=None)
+    
+        if mime_type is None:
+            mime_type = mimetypes.guess_type(file_path)[0]        
+            if mime_type is None:
+                raise ValueError('if the mime_type argument is not given you must provide a file_path with a valid extension')
+        
+        if isinstance(contents, str):
+            params = {
+                'filename': file_path,
+                'file_content': contents,
+                'mime_type': mime_type
+            }
+            content_type = 'application/x-www-form-urlencoded'
+        else:  # binary data
+            params = {
+                'filename': file_path.encode('utf-8'),
+                'file_content': contents,
+                'mime_type': mime_type.encode('utf-8')
+            }
+            content_type = 'multipart/form-data'
+        return self.submit_request(params, path, 'POST', content_type)
+
+    def remove_file_from_repo(self, assignment_id: int, group_id: int, file_path: str) -> List[str]:
+        """
+        Remove a file at file_path from the assignment directory in the repo for group with id group_id.
+
+        The file_path should be a relative path from the assignment directory of a repository.
+        For example, if you want to upload a file to A1/somesubdir/myfile.txt then the short identifier
+        of the assignment with id assignment_id should be A1 and the file_path argument should be:
+        'somesubdir/myfile.txt'
+        """
+        path = Markus.get_path(assignments=assignment_id, groups=group_id, submission_files=None, remove_file=None)
+        params = {'filename': file_path}
+        return self.submit_request(params, path, 'DELETE')
 
     def submit_request(self, params: Optional[dict], path: str, request_type: str, content_type: str = 'application/x-www-form-urlencoded') -> List[str]:
         """ Return result from _do_submit_request after formatting the params and setting headers """
