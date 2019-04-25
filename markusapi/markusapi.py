@@ -253,7 +253,7 @@ class Markus:
         if mime_type is None:
             mime_type = mimetypes.guess_type(file_path)[0]        
             if mime_type is None:
-                raise ValueError('if the mime_type argument is not given you must provide a title file_path with a valid extension')
+                raise ValueError('if the mime_type argument is not given you must provide a file_path with a valid extension')
         
         if isinstance(contents, str):
             params = {
