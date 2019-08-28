@@ -18,7 +18,7 @@ import http.client
 import json
 import mimetypes
 import sys
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict
 from urllib.parse import urlparse, urlencode
 
 
@@ -126,6 +126,33 @@ class Markus:
         path = Markus.get_path(assignments=assignment_id, groups=group_id, feedback_files=feedback_file_id) + '.json'
         response = self.submit_request(params, path, 'GET')
         return Markus.decode_text_response(response)
+
+    def get_grades_summary(self, assignment_id: int) -> str:
+        """
+        Get grades summary csv file as a string.
+        """
+        params = {}
+        path = Markus.get_path(assignments=assignment_id, grades_summary=None) + '.json'
+        response = self.submit_request(params, path, 'GET')
+        return Markus.decode_text_response(response)
+
+    def update_marks_spreadsheets_grades(self, spreadsheet_id: int,
+                                         user_name: str, grades_per_column: Dict[str, float]) -> List[str]:
+        params = {
+            'user_name': user_name,
+            'grade_entry_items': grades_per_column
+        }
+        path = Markus.get_path(grade_entry_forms=spreadsheet_id, update_grades=None) + '.json'
+        return self.submit_request(params, path, 'PUT', content_type='application/json')
+
+    def get_marks_spreadsheets(self) -> List[dict]:
+        """
+        Get all marks spreadsheets.
+        """
+        params = {}
+        path = Markus.get_path(grade_entry_forms=None) + '.json'
+        response = self.submit_request(params, path, 'GET')
+        return Markus.decode_json_response(response)
 
     def get_marks_spreadsheet(self, spreadsheet_id: int) -> str:
         """
