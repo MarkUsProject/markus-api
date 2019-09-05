@@ -19,6 +19,7 @@ import json
 import mimetypes
 import sys
 from typing import Optional, List, Union, Dict
+from datetime import datetime
 from urllib.parse import urlparse, urlencode
 
 
@@ -135,6 +136,44 @@ class Markus:
         path = Markus.get_path(assignments=assignment_id, grades_summary=None) + '.json'
         response = self.submit_request(params, path, 'GET')
         return Markus.decode_text_response(response)
+
+    def new_marks_spreadsheet(self, short_identifier: str, description: str = '', 
+                              date: Optional[datetime] = None, is_hidden: bool = True, 
+                              show_total: bool = True, 
+                              grade_entry_items: Optional[Dict[str, Union[str, bool, float]]] = None) -> List[str]:
+        """
+        Create a new marks spreadsheet
+        """
+        params = {'short_identifier': short_identifier, 
+                  'description': description, 
+                  'date': date, 
+                  'is_hidden': is_hidden, 
+                  'show_total': show_total, 
+                  'grade_entry_items': grade_entry_items}
+        path = Markus.get_path(grade_entry_forms=None) + '.json'
+        return self.submit_request(params, path, 'POST', content_type='application/json')
+
+    def update_marks_spreadsheet(self, spreadsheet_id: int,
+                                 short_identifier: Optional[str] = None,
+                                 description: Optional[str] = None,
+                                 date: Optional[datetime] = None,
+                                 is_hidden: Optional[bool] = None,
+                                 show_total: Optional[bool] = None,
+                                 grade_entry_items: Optional[Dict[str, Union[str, bool, float]]] = None) -> List[str]:
+        """
+        Update an existing marks spreadsheet
+        """
+        params = {'short_identifier': short_identifier, 
+                  'description': description, 
+                  'date': date, 
+                  'is_hidden': is_hidden, 
+                  'show_total': show_total, 
+                  'grade_entry_items': grade_entry_items}
+        for name in list(params):
+            if params[name] is None:
+                params.pop(name)
+        path = Markus.get_path(grade_entry_forms=spreadsheet_id) + '.json'
+        return self.submit_request(params, path, 'PUT', content_type='application/json')
 
     def update_marks_spreadsheets_grades(self, spreadsheet_id: int,
                                          user_name: str, grades_per_column: Dict[str, float]) -> List[str]:
