@@ -133,6 +133,37 @@ class TestMarkusAPICalls:
         submit_request.assert_called_with({}, f'{get_path.return_value}.json', 'GET')
         decode_text_response.assert_called_with(submit_request.return_value)        
 
+    @given(kwargs=strategies_from_signature(Markus.new_marks_spreadsheet))
+    @patch.object(Markus, 'submit_request', return_value=DUMMY_RETURNS['submit_request'])
+    @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
+    def test_new_marks_spreadsheet(self, get_path, submit_request, kwargs):
+        dummy_markus().new_marks_spreadsheet(**kwargs)
+        get_path.assert_called_with(grade_entry_forms=None)
+        params = {'short_identifier': kwargs['short_identifier'], 
+                  'description': kwargs['description'], 
+                  'date': kwargs['date'], 
+                  'is_hidden': kwargs['is_hidden'], 
+                  'show_total': kwargs['show_total'], 
+                  'grade_entry_items': kwargs['grade_entry_items']}
+        submit_request.assert_called_with(params, get_path.return_value + '.json', 'POST', content_type='application/json')
+
+    @given(kwargs=strategies_from_signature(Markus.update_marks_spreadsheet))
+    @patch.object(Markus, 'submit_request', return_value=DUMMY_RETURNS['submit_request'])
+    @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
+    def test_update_marks_spreadsheet(self, get_path, submit_request, kwargs):
+        dummy_markus().update_marks_spreadsheet(**kwargs)
+        get_path.assert_called_with(grade_entry_forms=kwargs['spreadsheet_id'])
+        params = {'short_identifier': kwargs['short_identifier'], 
+                  'description': kwargs['description'], 
+                  'date': kwargs['date'], 
+                  'is_hidden': kwargs['is_hidden'], 
+                  'show_total': kwargs['show_total'], 
+                  'grade_entry_items': kwargs['grade_entry_items']}
+        for name in list(params):
+            if params[name] is None:
+                params.pop(name)
+        submit_request.assert_called_with(params, get_path.return_value + '.json', 'PUT', content_type='application/json')
+
     @given(kwargs=strategies_from_signature(Markus.update_marks_spreadsheets_grades))
     @patch.object(Markus, 'submit_request', return_value=DUMMY_RETURNS['submit_request'])
     @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
