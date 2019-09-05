@@ -141,6 +141,9 @@ class Markus:
                               date: Optional[datetime] = None, is_hidden: bool = True, 
                               show_total: bool = True, 
                               grade_entry_items: Optional[Dict[str, Union[str, bool, float]]] = None) -> List[str]:
+        """
+        Create a new marks spreadsheet
+        """
         params = {'short_identifier': short_identifier, 
                   'description': description, 
                   'date': date, 
@@ -157,6 +160,9 @@ class Markus:
                                  is_hidden: Optional[bool] = None,
                                  show_total: Optional[bool] = None,
                                  grade_entry_items: Optional[Dict[str, Union[str, bool, float]]] = None) -> List[str]:
+        """
+        Update an existing marks spreadsheet
+        """
         params = {'short_identifier': short_identifier, 
                   'description': description, 
                   'date': date, 
