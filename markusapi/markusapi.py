@@ -315,6 +315,16 @@ class Markus:
 
     def get_files_from_repo(self, assignment_id: int, group_id: int, 
                             filename: Optional[str] = None, collected: bool = True) -> Optional[str]:
+        """ 
+        Return file content from the submission of a single group. If <filename> is specified, 
+        return the content of a single file, otherwise return the content of a zipfile containing 
+        the content of all submission files.
+        
+        If <collected> is True, return the collected version of the files, otherwise return the most
+        recent version of the files.
+
+        The method returns None if there are no files to collect.
+        """
         path = Markus.get_path(assignments=assignment_id, groups=group_id, submission_files=None) + '.json'
         params = {}
         if collected:
