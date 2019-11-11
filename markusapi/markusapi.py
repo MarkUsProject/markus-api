@@ -313,6 +313,18 @@ class Markus:
         path = Markus.get_path(assignments=assignment_id, groups=group_id, update_marking_state=None)
         return self.submit_request(params, path, 'PUT')
 
+    def get_files_from_repo(self, assignment_id: int, group_id: int, 
+                            filename: Optional[str] = None, collected: bool = True) -> Optional[str]:
+        path = Markus.get_path(assignments=assignment_id, groups=group_id, submission_files=None) + '.json'
+        params = {}
+        if collected:
+            params['collected'] = collected
+        if filename:
+            params['filename'] = filename
+        response = self.submit_request(params, path, 'GET')
+        if response[0] == 200:
+            return response[2]
+
     def upload_file_to_repo(self, assignment_id: int, group_id: int, file_path: str, 
                             contents: Union[str, bytes], mime_type: Optional[str] = None) -> List[str]:
         """ 
