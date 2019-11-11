@@ -288,6 +288,19 @@ class TestMarkusAPICalls:
         assert path == get_path.return_value
         assert params.keys() == {'filename'}
 
+    @given(kwargs=strategies_from_signature(Markus.get_files_from_repo))
+    @patch.object(Markus, 'submit_request', return_value=DUMMY_RETURNS['submit_request'])
+    @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
+    def test_get_files_from_repo(self, get_path, submit_request, kwargs):
+        dummy_markus().get_files_from_repo(**{**kwargs})
+        get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'], submission_files=None)
+        params, path, request_type = submit_request.call_args[0]
+        assert path == get_path.return_value + '.json'
+        if kwargs.get('filename'):
+            assert 'filename' in params.keys()
+        if kwargs.get('collected'):
+            assert 'collected' in params.keys()
+
 class TestMarkusAPIHelpers:
 
     @given(kwargs=strategies_from_signature(Markus.submit_request),
