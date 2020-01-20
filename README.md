@@ -7,7 +7,7 @@ Python interface to the api for a [MarkUs](https://github.com/MarkUsProject/Mark
 Install this package with pip:
 
 ```
-$ pip install git+https://github.com/MarkusProject/markus-api.git
+$ pip install markusapi
 ```
 
 ## Requirements
