@@ -335,6 +335,13 @@ class Markus:
         if response[0] == 200:
             return response[2]
 
+    def create_folders(self, assignment_id: int, group_id: int, folder_path: str) -> List[str]:
+        path = Markus.get_path(assignments=assignment_id, groups=group_id, submission_files=None, create_folders=None)
+        params = {
+            'folder_path': folder_path
+        }
+        return self.submit_request(params, path, 'POST')
+
     def upload_file_to_repo(self, assignment_id: int, group_id: int, file_path: str, 
                             contents: Union[str, bytes], mime_type: Optional[str] = None) -> List[str]:
         """ 
