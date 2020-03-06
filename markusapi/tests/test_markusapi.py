@@ -288,12 +288,12 @@ class TestMarkusAPICalls:
         assert path == get_path.return_value
         assert params.keys() == {'filename'}
 
-    @given(kwargs=strategies_from_signature(Markus.remove_folders), foldername=st.from_regex(fr'([a-z]+/?)+'))
+    @given(kwargs=strategies_from_signature(Markus.remove_folder_from_repo), foldername=st.from_regex(fr'([a-z]+/?)+'))
     @patch.object(Markus, 'submit_request', return_value=DUMMY_RETURNS['submit_request'])
     @patch.object(Markus, 'decode_json_response', return_value=[DUMMY_RETURNS['decode_json_response']])
     @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
-    def test_remove_folders(self, get_path, decode_json_response, submit_request, kwargs, foldername):
-        dummy_markus().remove_folders(**{**kwargs, 'folder_path': foldername})
+    def test_remove_folder_from_repo(self, get_path, decode_json_response, submit_request, kwargs, foldername):
+        dummy_markus().remove_folder_from_repo(**{**kwargs, 'folder_path': foldername})
         get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'],
                                     submission_files=None, remove_folder=None)
         params, path, request_type = submit_request.call_args[0]

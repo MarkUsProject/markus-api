@@ -382,7 +382,7 @@ class Markus:
         params = {'filename': file_path}
         return self.submit_request(params, path, 'DELETE')
 
-    def remove_folders(self, assignment_id: int, group_id: int, folder_path: str) -> List[str]:
+    def remove_folder_from_repo(self, assignment_id: int, group_id: int, folder_path: str) -> List[str]:
         path = Markus.get_path(assignments=assignment_id, groups=group_id, submission_files=None, remove_folder=None)
         params = {'folder_path': folder_path}
         return self.submit_request(params, path, 'DELETE')
