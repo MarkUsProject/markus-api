@@ -266,13 +266,13 @@ class TestMarkusAPICalls:
         get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'], update_marks=None)
         submit_request.assert_called_with(kwargs['criteria_mark_map'], get_path.return_value, 'PUT')
 
-    @given(kwargs=strategies_from_signature(Markus.create_folders),
+    @given(kwargs=strategies_from_signature(Markus.upload_folder_to_repo),
            foldername=st.from_regex(fr'([a-z]+/?)+', fullmatch=True))
     @patch.object(Markus, 'submit_request', return_value=DUMMY_RETURNS['submit_request'])
     @patch.object(Markus, 'decode_json_response', return_value=[DUMMY_RETURNS['decode_json_response']])
     @patch.object(Markus, 'get_path', return_value=DUMMY_RETURNS['path'])
-    def test_create_folders(self, get_path, decode_json_response, submit_request, kwargs, foldername):
-        dummy_markus().create_folders(**{**kwargs, 'folder_path': foldername})
+    def test_upload_folder_to_repo(self, get_path, decode_json_response, submit_request, kwargs, foldername):
+        dummy_markus().upload_folder_to_repo(**{**kwargs, 'folder_path': foldername})
         get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'],
                                     submission_files=None, create_folders=None)
         params, path, request_type = submit_request.call_args[0]
