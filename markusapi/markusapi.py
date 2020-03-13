@@ -389,6 +389,11 @@ class Markus:
         params = {'filename': file_path}
         return self.submit_request(params, path, 'DELETE')
 
+    def remove_folder_from_repo(self, assignment_id: int, group_id: int, folder_path: str) -> List[str]:
+        path = Markus.get_path(assignments=assignment_id, groups=group_id, submission_files=None, remove_folder=None)
+        params = {'folder_path': folder_path}
+        return self.submit_request(params, path, 'DELETE')
+
     def submit_request(self, params: Optional[dict], path: str, request_type: str, content_type: str = 'application/x-www-form-urlencoded') -> List[str]:
         """ Return result from _do_submit_request after formatting the params and setting headers """
         headers = {'Content-type': content_type}
