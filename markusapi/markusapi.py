@@ -48,7 +48,7 @@ class Markus:
         Return a list of every user in the MarkUs instance.
         Each user is a dictionary object, with the following keys:
         'id', 'user_name', 'first_name', 'last_name',
-        'type', 'grace_credits', 'notes_count'.
+        'type', 'grace_credits', 'notes_count', 'hidden'.
         """
         params = None
         response = self.submit_request(params, '/api/users.json', 'GET')
