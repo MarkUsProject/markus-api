@@ -309,6 +309,22 @@ class Markus:
         path = Markus._get_path(assignments=assignment_id, groups=group_id, update_marking_state=None)
         return self._submit_request(params, path, "PUT")
 
+    def add_extra_marks(self, assignment_id: int, group_id: int, extra_marks: float, description: str):
+        params = {
+            'extra_marks': extra_marks,
+            'description': description
+        }
+        path = Markus._get_path(assignments=assignment_id, groups=group_id, add_extra_marks=None)
+        return self._submit_request(params, path, 'POST')
+
+    def remove_extra_marks(self, assignment_id: int, group_id: int, extra_marks: float, description: str):
+        params = {
+            'extra_marks': extra_marks,
+            'description': description
+        }
+        path = Markus._get_path(assignments=assignment_id, groups=group_id, remove_extra_marks=None)
+        return self._submit_request(params, path, 'DELETE')
+
     def get_files_from_repo(
         self, assignment_id: int, group_id: int, filename: Optional[str] = None, collected: bool = True
     ) -> Optional[bytes]:
