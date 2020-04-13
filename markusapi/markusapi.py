@@ -314,7 +314,7 @@ class Markus:
             'extra_marks': extra_marks,
             'description': description
         }
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, add_extra_marks=None)
+        path = Markus._get_path(assignments=assignment_id, groups=group_id, create_extra_marks=None)
         return self._submit_request(params, path, 'POST')
 
     def remove_extra_marks(self, assignment_id: int, group_id: int, extra_marks: float, description: str):

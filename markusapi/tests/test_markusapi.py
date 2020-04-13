@@ -298,6 +298,32 @@ class TestMarkusAPICalls:
         assert path == _get_path.return_value
         assert params.keys() == {"folder_path"}
 
+    @given(kwargs=strategies_from_signature(Markus.create_extra_marks))
+    @patch.object(Markus, '_submit_request', return_value=DUMMY_RETURNS['_submit_request'])
+    @patch.object(Markus, '_get_path', return_value=DUMMY_RETURNS['path'])
+    def test_create_extra_marks(self, _get_path, _submit_request, kwargs):
+        dummy_markus().create_extra_marks(**kwargs)
+        params = {
+            'extra_marks': kwargs['extra_marks'],
+            'description': kwargs['description']
+        }
+        _get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'],
+                                    create_extra_marks=None)
+        _submit_request.assert_called_with(params, _get_path.return_value, 'POST')
+
+    @given(kwargs=strategies_from_signature(Markus.remove_extra_marks))
+    @patch.object(Markus, '_submit_request', return_value=DUMMY_RETURNS['_submit_request'])
+    @patch.object(Markus, '_get_path', return_value=DUMMY_RETURNS['path'])
+    def test_remove_extra_marks(self, _get_path, _submit_request, kwargs):
+        dummy_markus().remove_extra_marks(**kwargs)
+        params = {
+            'extra_marks': kwargs['extra_marks'],
+            'description': kwargs['description']
+        }
+        _get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'],
+                                    remove_extra_marks=None)
+        _submit_request.assert_called_with(params, _get_path.return_value, 'DELETE')
+
     @given(kwargs=strategies_from_signature(Markus.upload_file_to_repo), filename=file_name_strategy())
     @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
     @patch.object(Markus, "_decode_json_response", return_value=[DUMMY_RETURNS["_decode_json_response"]])
