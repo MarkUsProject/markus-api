@@ -376,6 +376,34 @@ class Markus:
         params = {"folder_path": folder_path}
         return self._submit_request(params, path, "DELETE")
 
+    def get_test_specs(self, assignment_id: int) -> Dict:
+        """
+        Get the test spec settings for an assignment with id <assignment_id>.
+        """
+        path = Markus._get_path(assignments=assignment_id, test_specs=None) + ".json"
+        params = None
+        response = self._submit_request(params, path, "GET")
+        return Markus._decode_json_response(response)
+
+    def update_test_specs(self, assignment_id: int, specs: Dict) -> ResponseType:
+        """
+        Update the test spec settings for an assignment with id <assignment_id> to be <specs>.
+        """
+        path = Markus._get_path(assignments=assignment_id, update_test_specs=None) + ".json"
+        params = {"specs": specs}
+        return self._submit_request(params, path, "POST", content_type="application/json")
+
+    def get_test_files(self, assignment_id: int) -> Optional[bytes]:
+        """
+        Return the content of a zipfile containing the content of all files uploaded for automated testing of
+        the assignment with id <assignment_id>.
+        """
+        path = Markus._get_path(assignments=assignment_id, test_files=None) + ".json"
+        params = None
+        response = self._submit_request(params, path, "GET")
+        if response[0] == 200:
+            return response[2]
+
     # Helpers
 
     def _submit_request(

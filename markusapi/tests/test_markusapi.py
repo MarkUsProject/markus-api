@@ -352,6 +352,35 @@ class TestMarkusAPICalls:
         if kwargs.get("collected"):
             assert "collected" in params.keys()
 
+    @given(kwargs=strategies_from_signature(Markus.get_test_specs))
+    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
+    @patch.object(Markus, "_decode_json_response")
+    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
+    def test_get_test_specs(self, _get_path, _decode_json_response, _submit_request, kwargs):
+        dummy_markus().get_test_specs(**kwargs)
+        _get_path.assert_called_with(assignments=kwargs["assignment_id"], test_specs=None)
+        _submit_request.assert_called_with(None, f"{_get_path.return_value}.json", "GET")
+        _decode_json_response.assert_called_with(_submit_request.return_value)
+
+    @given(kwargs=strategies_from_signature(Markus.update_test_specs))
+    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
+    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
+    def test_update_test_specs(self, _get_path, _submit_request, kwargs):
+        dummy_markus().update_test_specs(**{**kwargs})
+        _get_path.assert_called_with(assignments=kwargs["assignment_id"], update_test_specs=None)
+        specs = {"specs": kwargs["specs"]}
+        _submit_request.assert_called_with(
+            specs, f"{_get_path.return_value}.json", "POST", content_type="application/json"
+        )
+
+    @given(kwargs=strategies_from_signature(Markus.get_test_files))
+    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
+    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
+    def test_get_test_files(self, _get_path, _submit_request, kwargs):
+        dummy_markus().get_test_files(**kwargs)
+        _get_path.assert_called_with(assignments=kwargs["assignment_id"], test_files=None)
+        _submit_request.assert_called_with(None, f"{_get_path.return_value}.json", "GET")
+
 
 class TestMarkusAPIHelpers:
     @given(
