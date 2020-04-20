@@ -1,5 +1,8 @@
 # Changelog
 
+##[v0.1.1]
+- Fixed bug which caused file uploads to be PUT requests by default instead of POST (#22)
+
 ##[v0.1.0]
 - this release includes functions to call all API routes for MarkUs version 1.9.0 (#10, #12, #13, #14, #18)
 - updated documentation to give correct instructions for pip installation (#11)
