@@ -497,7 +497,7 @@ class Markus:
         file_path: str,
         contents: Union[str, bytes],
         mime_type: Optional[str] = None,
-        request_type: str = "PUT",
+        request_type: str = "POST",
     ) -> ResponseType:
         """
         Helper that performs requests of <request_type> to <path> that involves uploading a file named
