@@ -1,5 +1,6 @@
 # Changelog
 ##[unreleased]
+- Added new methods for adding and removing extra marks (#15)
 - Fixed bug which caused file uploads to be PUT requests by default instead of POST (#22)
 
 ##[v0.1.0]
