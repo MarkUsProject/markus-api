@@ -1,471 +1,650 @@
+import abc
 import pytest
-import typing
-import mimetypes
-import json
-import http.client
-from hypothesis import given
-from hypothesis import strategies as st
-from unittest.mock import patch
-from markusapi import Markus
+import markusapi
+import datetime
+from unittest.mock import patch, PropertyMock, Mock
+
+FAKE_API_KEY = 'fake_api_key'
+FAKE_URL = 'http://example.com'
 
 
-def strategies_from_signature(method):
-    mapping = {k: st.from_type(v) for k, v in typing.get_type_hints(method).items() if k != "return"}
-    return st.fixed_dictionaries(mapping)
+@pytest.fixture
+def api():
+    return markusapi.Markus(FAKE_API_KEY, FAKE_URL)
 
 
-def dummy_markus(scheme="http"):
-    return Markus("", f"{scheme}://localhost:8080")
+class AbstractTestClass(abc.ABC):
+
+    @classmethod
+    @pytest.fixture
+    def response_mock(cls):
+        with patch(f'requests.{cls.request_verb}') as mock:
+            type(mock.return_value).ok = PropertyMock(return_value=True)
+            mock.return_value.content = 'content'
+            mock.return_value.text = 'text'
+            mock.return_value.json.return_value = 'json'
+            yield mock
+
+    @classmethod
+    @pytest.fixture
+    def bad_response_mock(cls, response_mock):
+        type(response_mock.return_value).ok = PropertyMock(return_value=False)
+        yield response_mock
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def request_verb(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def response_format(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def url(self):
+        pass
+
+    def test_json_response_data_on_failure(self, bad_response_mock, basic_call):
+        assert basic_call == 'json'
+
+    def test_correct_response_data_on_success(self, response_mock, basic_call):
+        assert basic_call == self.response_format
+
+    def test_called_with_correct_athorization(self, response_mock, basic_call):
+        assert response_mock.call_args.kwargs['headers']['Authorization'] == f'MarkUsAuth {FAKE_API_KEY}'
+
+    def test_called_with_correct_url(self, response_mock, basic_call):
+        assert response_mock.call_args.args[0] == f'{FAKE_URL}/api/{self.url}.json'
 
 
-DUMMY_RETURNS = {
-    "_submit_request": b'{"f": "foo"}',
-    "_decode_json_response": {"f": "foo"},
-    "_decode_text_response": '{"f": "foo"}',
-    "path": "/fake/path",
-}
+class TestGetAllUsers(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'json'
+    url = 'users'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        return api.get_all_users()
 
 
-def file_name_strategy():
-    exts = "|".join([f"\\{ext}" for ext in mimetypes.types_map.keys()])
-    return st.from_regex(fr"\w+({exts})", fullmatch=True)
+class TestNewUser(AbstractTestClass):
+    request_verb = 'post'
+    response_format = 'json'
+    url = 'users'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        return api.new_user('test', 'Student', 'first', 'last', 'section', '3')
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.new_user('test', 'Student', 'first', 'last')
+        params = {"user_name": 'test', "type": 'Student', "first_name": 'first', "last_name": 'last'}
+        assert response_mock.call_args.kwargs['params'] == params
+
+    def test_called_with_section(self, api, response_mock):
+        api.new_user('test', 'Student', 'first', 'last', section_name='section')
+        params = {"user_name": 'test', "type": 'Student', "first_name": 'first', "last_name": 'last', 'section_name': 'section'}
+        assert response_mock.call_args.kwargs['params'] == params
+
+    def test_called_with_grace_credits(self, api, response_mock):
+        api.new_user('test', 'Student', 'first', 'last', grace_credits='3')
+        params = {"user_name": 'test', "type": 'Student', "first_name": 'first', "last_name": 'last', 'grace_credits': '3'}
+        assert response_mock.call_args.kwargs['params'] == params
 
 
-class TestMarkusAPICalls:
-    def test_init_set_attributes(self):
-        obj = dummy_markus()
-        assert isinstance(obj, Markus)
+class TestGetAssignments(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'json'
+    url = 'assignments'
 
-    def test_init_bad_scheme(self):
-        try:
-            dummy_markus("ftp")
-        except AssertionError:
-            return
-        pytest.fail()
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_assignments()
 
-    def test_init_parse_url(self):
-        api_key = ""
-        url = "https://markus.com/api/users?id=1"
-        obj = Markus(api_key, url)
-        assert obj.parsed_url.scheme == "https"
-        assert obj.parsed_url.netloc == "markus.com"
-        assert obj.parsed_url.path == "/api/users"
-        assert obj.parsed_url.query == "id=1"
 
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response")
-    def test_get_all_users(self, _decode_json_response, _submit_request):
-        dummy_markus().get_all_users()
-        _submit_request.assert_called_with(None, "/api/users.json", "GET")
-        _decode_json_response.assert_called_with(_submit_request.return_value)
+class TestGetGroups(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'json'
+    url = 'assignments/1/groups'
 
-    @given(kwargs=strategies_from_signature(Markus.new_user))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    def test_new_user(self, _submit_request, kwargs):
-        dummy_markus().new_user(**kwargs)
-        _submit_request.assert_called_once()
-        call_args = _submit_request.call_args[0][0].values()
-        assert all(v in call_args for k, v in kwargs.items() if v is not None)
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_groups(1)
 
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response")
-    def test_get_assignments(self, _decode_json_response, _submit_request):
-        dummy_markus().get_assignments()
-        _submit_request.assert_called_with(None, "/api/assignments.json", "GET")
-        _decode_json_response.assert_called_with(_submit_request.return_value)
 
-    @given(kwargs=strategies_from_signature(Markus.get_groups))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response")
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_groups(self, _get_path, _decode_json_response, _submit_request, kwargs):
-        dummy_markus().get_groups(**kwargs)
-        _get_path.assert_called_with(assignments=kwargs["assignment_id"], groups=None)
-        _submit_request.assert_called_with(None, f"{_get_path.return_value}.json", "GET")
-        _decode_json_response.assert_called_with(_submit_request.return_value)
+class TestGetGroupsByName(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'json'
+    url = 'assignments/1/groups/group_ids_by_name'
 
-    @given(kwargs=strategies_from_signature(Markus.get_groups_by_name))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response")
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_groups_by_name(self, _get_path, _decode_json_response, _submit_request, kwargs):
-        dummy_markus().get_groups_by_name(**kwargs)
-        _get_path.assert_called_with(assignments=kwargs["assignment_id"], groups=None, group_ids_by_name=None)
-        _submit_request.assert_called_with(None, f"{_get_path.return_value}.json", "GET")
-        _decode_json_response.assert_called_with(_submit_request.return_value)
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_groups_by_name(1)
 
-    @given(kwargs=strategies_from_signature(Markus.get_group))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response")
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_group(self, _get_path, _decode_json_response, _submit_request, kwargs):
-        dummy_markus().get_group(**kwargs)
-        _get_path.assert_called_with(assignments=kwargs["assignment_id"], groups=kwargs["group_id"])
-        _submit_request.assert_called_with(None, f"{_get_path.return_value}.json", "GET")
-        _decode_json_response.assert_called_with(_submit_request.return_value)
 
-    @given(kwargs=strategies_from_signature(Markus.get_feedback_files))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response")
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_feedback_files(self, _get_path, _decode_json_response, _submit_request, kwargs):
-        dummy_markus().get_feedback_files(**kwargs)
-        _get_path.assert_called_with(
-            assignments=kwargs["assignment_id"], groups=kwargs["group_id"], feedback_files=None
-        )
-        _submit_request.assert_called_with({}, f"{_get_path.return_value}.json", "GET")
-        _decode_json_response.assert_called_with(_submit_request.return_value)
+class TestGetGroup(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'json'
+    url = 'assignments/1/groups/1'
 
-    @given(kwargs=strategies_from_signature(Markus.get_feedback_file))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_text_response")
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_feedback_file(self, _get_path, _decode_text_response, _submit_request, kwargs):
-        dummy_markus().get_feedback_file(**kwargs)
-        _get_path.assert_called_with(
-            assignments=kwargs["assignment_id"], groups=kwargs["group_id"], feedback_files=kwargs["feedback_file_id"]
-        )
-        _submit_request.assert_called_with({}, f"{_get_path.return_value}.json", "GET")
-        _decode_text_response.assert_called_with(_submit_request.return_value)
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_group(1, 1)
 
-    @given(kwargs=strategies_from_signature(Markus.get_grades_summary))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_text_response")
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_grades_summary(self, _get_path, _decode_text_response, _submit_request, kwargs):
-        dummy_markus().get_grades_summary(**kwargs)
-        _get_path.get_grades_summary(assignments=kwargs["assignment_id"], grades_summary=None)
-        _submit_request.assert_called_with({}, f"{_get_path.return_value}.json", "GET")
-        _decode_text_response.assert_called_with(_submit_request.return_value)
 
-    @given(kwargs=strategies_from_signature(Markus.new_marks_spreadsheet))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_new_marks_spreadsheet(self, _get_path, _submit_request, kwargs):
-        dummy_markus().new_marks_spreadsheet(**kwargs)
-        _get_path.assert_called_with(grade_entry_forms=None)
+class TestGetFeedbackFiles(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/feedback_files'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_feedback_files(1, 1)
+
+
+class TestGetFeedbackFile(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'content'
+    url = 'assignments/1/groups/1/feedback_files/1'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_feedback_file(1, 1, 1)
+
+
+class TestGetGradesSummary(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'text'
+    url = 'assignments/1/grades_summary'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_grades_summary(1)
+
+
+class TestNewMarksSpreadsheet(AbstractTestClass):
+    request_verb = 'post'
+    response_format = 'json'
+    url = 'grade_entry_forms'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.new_marks_spreadsheet('test', 'description', datetime.datetime.now())
+
+    def test_called_with_basic_params(self, api, response_mock):
+        now = datetime.datetime.now()
+        api.new_marks_spreadsheet('test', 'description', now)
         params = {
-            "short_identifier": kwargs["short_identifier"],
-            "description": kwargs["description"],
-            "date": kwargs["date"],
-            "is_hidden": kwargs["is_hidden"],
-            "show_total": kwargs["show_total"],
-            "grade_entry_items": kwargs["grade_entry_items"],
+            "short_identifier": 'test',
+            "description": 'description',
+            "date": now,
+            "is_hidden": True,
+            "show_total": True,
+            "grade_entry_items": None,
         }
-        _submit_request.assert_called_with(
-            params, _get_path.return_value + ".json", "POST", content_type="application/json"
-        )
+        assert response_mock.call_args.kwargs['params'] == params
 
-    @given(kwargs=strategies_from_signature(Markus.update_marks_spreadsheet))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_update_marks_spreadsheet(self, _get_path, _submit_request, kwargs):
-        dummy_markus().update_marks_spreadsheet(**kwargs)
-        _get_path.assert_called_with(grade_entry_forms=kwargs["spreadsheet_id"])
+    def test_called_with_is_hidden(self, api, response_mock):
+        now = datetime.datetime.now()
+        api.new_marks_spreadsheet('test', 'description', now, is_hidden=False)
         params = {
-            "short_identifier": kwargs["short_identifier"],
-            "description": kwargs["description"],
-            "date": kwargs["date"],
-            "is_hidden": kwargs["is_hidden"],
-            "show_total": kwargs["show_total"],
-            "grade_entry_items": kwargs["grade_entry_items"],
+            "short_identifier": 'test',
+            "description": 'description',
+            "date": now,
+            "is_hidden": False,
+            "show_total": True,
+            "grade_entry_items": None,
         }
-        for name in list(params):
-            if params[name] is None:
-                params.pop(name)
-        _submit_request.assert_called_with(
-            params, _get_path.return_value + ".json", "PUT", content_type="application/json"
-        )
+        assert response_mock.call_args.kwargs['params'] == params
 
-    @given(kwargs=strategies_from_signature(Markus.update_marks_spreadsheets_grades))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_update_marks_spreadsheets_grades(self, _get_path, _submit_request, kwargs):
-        dummy_markus().update_marks_spreadsheets_grades(**kwargs)
-        _get_path.assert_called_with(grade_entry_forms=kwargs["spreadsheet_id"], update_grades=None)
-        params = {"user_name": kwargs["user_name"], "grade_entry_items": kwargs["grades_per_column"]}
-        _submit_request.assert_called_with(
-            params, _get_path.return_value + ".json", "PUT", content_type="application/json"
-        )
-
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response", return_value=[DUMMY_RETURNS["_decode_json_response"]])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_marks_spreadsheets(self, _get_path, _decode_json_response, _submit_request):
-        dummy_markus().get_marks_spreadsheets()
-        _get_path.assert_called_with(grade_entry_forms=None)
-        _submit_request.assert_called_with({}, f"{_get_path.return_value}.json", "GET")
-        _decode_json_response.assert_called_with(_submit_request.return_value)
-
-    @given(kwargs=strategies_from_signature(Markus.get_marks_spreadsheet))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_text_response")
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_marks_spreadsheet(self, _get_path, _decode_text_response, _submit_request, kwargs):
-        dummy_markus().get_marks_spreadsheet(**kwargs)
-        _get_path.assert_called_with(grade_entry_forms=kwargs["spreadsheet_id"])
-        _submit_request.assert_called_with({}, f"{_get_path.return_value}.json", "GET")
-        _decode_text_response.assert_called_with(_submit_request.return_value)
-
-    @given(kwargs=strategies_from_signature(Markus.upload_feedback_file), filename=file_name_strategy())
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response", return_value=[DUMMY_RETURNS["_decode_json_response"]])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_upload_feedback_file_good_title(self, _get_path, _decode_json_response, _submit_request, kwargs, filename):
-        dummy_markus().upload_feedback_file(**{**kwargs, "title": filename})
-        _get_path.assert_called_with(
-            assignments=kwargs["assignment_id"], groups=kwargs["group_id"], feedback_files=None
-        )
-        params, path, request_type, _content_type = _submit_request.call_args[0]
-        assert path == _get_path.return_value
-        assert params.keys() == {"filename", "file_content", "mime_type"}
-
-    @given(kwargs=strategies_from_signature(Markus.upload_feedback_file), filename=file_name_strategy())
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_upload_feedback_file_overwrite(self, _get_path, _submit_request, kwargs, filename):
-        with patch.object(Markus, "_decode_json_response", return_value=[{"id": 1, "filename": filename}]):
-            dummy_markus().upload_feedback_file(**{**kwargs, "title": filename})
-            _get_path.assert_called_with(
-                assignments=kwargs["assignment_id"], groups=kwargs["group_id"], feedback_files=None
-            )
-            _params, _path, request_type, _content_type = _submit_request.call_args[0]
-            assert request_type == ("PUT" if kwargs["overwrite"] else "POST")
-
-    @given(
-        kwargs=strategies_from_signature(Markus.upload_feedback_file), filename=st.from_regex(r"\w+", fullmatch=True)
-    )
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response", return_value=[DUMMY_RETURNS["_decode_json_response"]])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_upload_feedback_file_bad_title(self, _get_path, _decode_json_response, _submit_request, kwargs, filename):
-        with pytest.raises(ValueError):
-            dummy_markus().upload_feedback_file(**{**kwargs, "title": filename, "mime_type": None})
-
-    @given(kwargs=strategies_from_signature(Markus.upload_test_group_results))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_upload_test_group_results(self, _get_path, _submit_request, kwargs):
-        dummy_markus().upload_test_group_results(**kwargs)
-        params = {"test_run_id": kwargs["test_run_id"], "test_output": kwargs["test_output"]}
-        _get_path.assert_called_with(
-            assignments=kwargs["assignment_id"], groups=kwargs["group_id"], test_group_results=None
-        )
-        _submit_request.assert_called_with(params, _get_path.return_value, "POST")
-
-    @given(kwargs=strategies_from_signature(Markus.upload_annotations))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_upload_annotations(self, _get_path, _submit_request, kwargs):
-        dummy_markus().upload_annotations(**kwargs)
-        params = {"annotations": kwargs["annotations"], "force_complete": kwargs["force_complete"]}
-        _get_path.assert_called_with(
-            assignments=kwargs["assignment_id"], groups=kwargs["group_id"], add_annotations=None
-        )
-        _submit_request.assert_called_with(params, _get_path.return_value, "POST", "application/json")
-
-    @given(kwargs=strategies_from_signature(Markus.get_annotations))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response")
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_annotations(self, _get_path, _decode_json_response, _submit_request, kwargs):
-        dummy_markus().get_annotations(**kwargs)
-        _get_path.assert_called_with(assignments=kwargs["assignment_id"], groups=kwargs["group_id"], annotations=None)
-        _submit_request.assert_called_with(None, f"{_get_path.return_value}.json", "GET")
-        _decode_json_response.assert_called_with(_submit_request.return_value)
-
-    @given(kwargs=strategies_from_signature(Markus.update_marks_single_group))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_update_marks_single_group(self, _get_path, _submit_request, kwargs):
-        dummy_markus().update_marks_single_group(**kwargs)
-        _get_path.assert_called_with(assignments=kwargs["assignment_id"], groups=kwargs["group_id"], update_marks=None)
-        _submit_request.assert_called_with(kwargs["criteria_mark_map"], _get_path.return_value, "PUT")
-
-    @given(
-        kwargs=strategies_from_signature(Markus.upload_folder_to_repo),
-        foldername=st.from_regex(fr"([a-z]+/?)+", fullmatch=True),
-    )
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response", return_value=[DUMMY_RETURNS["_decode_json_response"]])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_upload_folder_to_repo(self, _get_path, _decode_json_response, _submit_request, kwargs, foldername):
-        dummy_markus().upload_folder_to_repo(**{**kwargs, "folder_path": foldername})
-        _get_path.assert_called_with(
-            assignments=kwargs["assignment_id"], groups=kwargs["group_id"], submission_files=None, create_folders=None
-        )
-        params, path, request_type = _submit_request.call_args[0]
-        assert path == _get_path.return_value
-        assert params.keys() == {"folder_path"}
-
-    @given(kwargs=strategies_from_signature(Markus.create_extra_marks))
-    @patch.object(Markus, '_submit_request', return_value=DUMMY_RETURNS['_submit_request'])
-    @patch.object(Markus, '_get_path', return_value=DUMMY_RETURNS['path'])
-    def test_create_extra_marks(self, _get_path, _submit_request, kwargs):
-        dummy_markus().create_extra_marks(**kwargs)
+    def test_called_with_is_show_total(self, api, response_mock):
+        now = datetime.datetime.now()
+        api.new_marks_spreadsheet('test', 'description', now, show_total=False)
         params = {
-            'extra_marks': kwargs['extra_marks'],
-            'description': kwargs['description']
+            "short_identifier": 'test',
+            "description": 'description',
+            "date": now,
+            "is_hidden": True,
+            "show_total": False,
+            "grade_entry_items": None,
         }
-        _get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'],
-                                    create_extra_marks=None)
-        _submit_request.assert_called_with(params, _get_path.return_value, 'POST')
+        assert response_mock.call_args.kwargs['params'] == params
 
-    @given(kwargs=strategies_from_signature(Markus.remove_extra_marks))
-    @patch.object(Markus, '_submit_request', return_value=DUMMY_RETURNS['_submit_request'])
-    @patch.object(Markus, '_get_path', return_value=DUMMY_RETURNS['path'])
-    def test_remove_extra_marks(self, _get_path, _submit_request, kwargs):
-        dummy_markus().remove_extra_marks(**kwargs)
+    def test_called_with_is_show_grade_entry_items(self, api, response_mock):
+        now = datetime.datetime.now()
+        ge_items = [{'name': 'a', 'out_of': 4}]
+        api.new_marks_spreadsheet('test', 'description', now, grade_entry_items=ge_items)
         params = {
-            'extra_marks': kwargs['extra_marks'],
-            'description': kwargs['description']
+            "short_identifier": 'test',
+            "description": 'description',
+            "date": now,
+            "is_hidden": True,
+            "show_total": True,
+            "grade_entry_items": ge_items,
         }
-        _get_path.assert_called_with(assignments=kwargs['assignment_id'], groups=kwargs['group_id'],
-                                    remove_extra_marks=None)
-        _submit_request.assert_called_with(params, _get_path.return_value, 'DELETE')
-
-    @given(kwargs=strategies_from_signature(Markus.upload_file_to_repo), filename=file_name_strategy())
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response", return_value=[DUMMY_RETURNS["_decode_json_response"]])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_upload_file_to_repo(self, _get_path, _decode_json_response, _submit_request, kwargs, filename):
-        dummy_markus().upload_file_to_repo(**{**kwargs, "file_path": filename})
-        _get_path.assert_called_with(
-            assignments=kwargs["assignment_id"], groups=kwargs["group_id"], submission_files=None
-        )
-        params, path, request_type, _content_type = _submit_request.call_args[0]
-        assert path == _get_path.return_value
-        assert params.keys() == {"filename", "file_content", "mime_type"}
-
-    @given(kwargs=strategies_from_signature(Markus.remove_file_from_repo), filename=file_name_strategy())
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response", return_value=[DUMMY_RETURNS["_decode_json_response"]])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_remove_file_from_repo(self, _get_path, _decode_json_response, _submit_request, kwargs, filename):
-        dummy_markus().remove_file_from_repo(**{**kwargs, "file_path": filename})
-        _get_path.assert_called_with(
-            assignments=kwargs["assignment_id"], groups=kwargs["group_id"], submission_files=None, remove_file=None
-        )
-        params, path, request_type = _submit_request.call_args[0]
-        assert path == _get_path.return_value
-        assert params.keys() == {"filename"}
-
-    @given(kwargs=strategies_from_signature(Markus.remove_folder_from_repo), foldername=st.from_regex(fr"([a-z]+/?)+"))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response", return_value=[DUMMY_RETURNS["_decode_json_response"]])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_remove_folder_from_repo(self, _get_path, _decode_json_response, _submit_request, kwargs, foldername):
-        dummy_markus().remove_folder_from_repo(**{**kwargs, "folder_path": foldername})
-        _get_path.assert_called_with(
-            assignments=kwargs["assignment_id"], groups=kwargs["group_id"], submission_files=None, remove_folder=None
-        )
-        params, path, request_type = _submit_request.call_args[0]
-        assert path == _get_path.return_value
-        assert params.keys() == {"folder_path"}
-
-    @given(kwargs=strategies_from_signature(Markus.get_files_from_repo))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_files_from_repo(self, _get_path, _submit_request, kwargs):
-        dummy_markus().get_files_from_repo(**{**kwargs})
-        _get_path.assert_called_with(
-            assignments=kwargs["assignment_id"], groups=kwargs["group_id"], submission_files=None
-        )
-        params, path, request_type = _submit_request.call_args[0]
-        assert path == _get_path.return_value + ".json"
-        if kwargs.get("filename"):
-            assert "filename" in params.keys()
-        if kwargs.get("collected"):
-            assert "collected" in params.keys()
-
-    @given(kwargs=strategies_from_signature(Markus.get_test_specs))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_decode_json_response")
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_test_specs(self, _get_path, _decode_json_response, _submit_request, kwargs):
-        dummy_markus().get_test_specs(**kwargs)
-        _get_path.assert_called_with(assignments=kwargs["assignment_id"], test_specs=None)
-        _submit_request.assert_called_with(None, f"{_get_path.return_value}.json", "GET")
-        _decode_json_response.assert_called_with(_submit_request.return_value)
-
-    @given(kwargs=strategies_from_signature(Markus.update_test_specs))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_update_test_specs(self, _get_path, _submit_request, kwargs):
-        dummy_markus().update_test_specs(**{**kwargs})
-        _get_path.assert_called_with(assignments=kwargs["assignment_id"], update_test_specs=None)
-        specs = {"specs": kwargs["specs"]}
-        _submit_request.assert_called_with(
-            specs, f"{_get_path.return_value}.json", "POST", content_type="application/json"
-        )
-
-    @given(kwargs=strategies_from_signature(Markus.get_test_files))
-    @patch.object(Markus, "_submit_request", return_value=DUMMY_RETURNS["_submit_request"])
-    @patch.object(Markus, "_get_path", return_value=DUMMY_RETURNS["path"])
-    def test_get_test_files(self, _get_path, _submit_request, kwargs):
-        dummy_markus().get_test_files(**kwargs)
-        _get_path.assert_called_with(assignments=kwargs["assignment_id"], test_files=None)
-        _submit_request.assert_called_with(None, f"{_get_path.return_value}.json", "GET")
+        assert response_mock.call_args.kwargs['params'] == params
 
 
-class TestMarkusAPIHelpers:
-    @given(
-        kwargs=strategies_from_signature(Markus._submit_request),
-        content_type=st.sampled_from(["application/x-www-form-urlencoded", "application/json"]),
-    )
-    @patch.object(Markus, "_do_submit_request")
-    def test_submit_request_check_types(self, do_submit_request, kwargs, content_type):
-        dummy_markus()._submit_request(**{**kwargs, "content_type": content_type})
-        params, _path, _request_type, headers = do_submit_request.call_args[0]
-        assert isinstance(params, (str, type(None)))
-        assert isinstance(headers, dict)
+class TestUpdateMarksSpreadsheet(AbstractTestClass):
+    request_verb = 'put'
+    response_format = 'json'
+    url = 'grade_entry_forms/1'
 
-    @given(
-        kwargs=strategies_from_signature(Markus._submit_request),
-        content_type=st.sampled_from(["multipart/form-data", "bad/content/type"]),
-    )
-    @patch.object(Markus, "_do_submit_request")
-    def test_submit_request_check_catches_invalid(self, do_submit_request, kwargs, content_type):
-        try:
-            dummy_markus()._submit_request(**{**kwargs, "content_type": content_type})
-        except ValueError:
-            return
-        params, _path, _request_type, headers = do_submit_request.call_args[0]
-        assert isinstance(params, (str, type(None)))
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.update_marks_spreadsheet(1, 'test', 'description', datetime.datetime.now())
 
-    @given(kwargs=strategies_from_signature(Markus._do_submit_request))
-    @patch.object(http.client.HTTPConnection, "request")
-    @patch.object(http.client.HTTPConnection, "getresponse")
-    @patch.object(http.client.HTTPConnection, "close")
-    def test__do_submit_request_http(self, request, getresponse, close, kwargs):
-        dummy_markus("http")._do_submit_request(**kwargs)
-        request.assert_called_once()
-        getresponse.assert_called_once()
-        close.assert_called_once()
+    def test_called_with_basic_params(self, api, response_mock):
+        now = datetime.datetime.now()
+        api.update_marks_spreadsheet(1, 'test', 'description', now)
+        params = {
+            "short_identifier": 'test',
+            "description": 'description',
+            "date": now
+        }
+        assert response_mock.call_args.kwargs['params'] == params
 
-    @given(kwargs=strategies_from_signature(Markus._do_submit_request))
-    @patch.object(http.client.HTTPSConnection, "request")
-    @patch.object(http.client.HTTPSConnection, "getresponse")
-    @patch.object(http.client.HTTPSConnection, "close")
-    def test__do_submit_request_https(self, request, getresponse, close, kwargs):
-        dummy_markus("https")._do_submit_request(**kwargs)
-        request.assert_called_once()
-        getresponse.assert_called_once()
-        close.assert_called_once()
+    def test_called_with_is_hidden(self, api, response_mock):
+        now = datetime.datetime.now()
+        api.update_marks_spreadsheet(1, 'test', 'description', now, is_hidden=False)
+        params = {
+            "short_identifier": 'test',
+            "description": 'description',
+            "date": now,
+            "is_hidden": False
+        }
+        assert response_mock.call_args.kwargs['params'] == params
 
-    @given(kwargs=st.dictionaries(st.text(), st.text()))
-    def test_get_path(self, kwargs):
-        path = Markus._get_path(**kwargs)
-        for k, v in kwargs.items():
-            assert k + (f"/{v}" if v is not None else "") in path
+    def test_called_with_is_show_total(self, api, response_mock):
+        now = datetime.datetime.now()
+        api.update_marks_spreadsheet(1, 'test', 'description', now, show_total=False)
+        params = {
+            "short_identifier": 'test',
+            "description": 'description',
+            "date": now,
+            "show_total": False
+        }
+        assert response_mock.call_args.kwargs['params'] == params
 
-    @given(strategies_from_signature(Markus._decode_text_response))
-    def test_decode_text_response(self, **kwargs):
-        result = Markus._decode_text_response(**kwargs)
-        assert isinstance(result, str)
+    def test_called_with_is_show_grade_entry_items(self, api, response_mock):
+        now = datetime.datetime.now()
+        ge_items = [{'name': 'a', 'out_of': 4}]
+        api.update_marks_spreadsheet(1, 'test', 'description', now, grade_entry_items=ge_items)
+        params = {
+            "short_identifier": 'test',
+            "description": 'description',
+            "date": now,
+            "grade_entry_items": ge_items,
+        }
+        assert response_mock.call_args.kwargs['params'] == params
 
-    @given(in_dict=st.dictionaries(st.text(), st.text()))
-    def test_decode_text_response(self, in_dict):
-        res = json.dumps(in_dict).encode()
-        result = Markus._decode_text_response((200, "", res))
-        assert isinstance(result, str)
+
+class TestUpdateMarksSpreadsheetGrades(AbstractTestClass):
+    request_verb = 'put'
+    response_format = 'json'
+    url = 'grade_entry_forms/1/update_grades'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.update_marks_spreadsheets_grades(1, 'some_user', {'some_column': 2})
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.update_marks_spreadsheets_grades(1, 'some_user', {'some_column': 2})
+        params = {
+            "user_name": 'some_user',
+            "grade_entry_items": {'some_column': 2}
+        }
+        assert response_mock.call_args.kwargs['json'] == params
+
+
+class TestGetMarksSpreadsheets(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'json'
+    url = 'grade_entry_forms'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_marks_spreadsheets()
+
+
+class TestGetMarksSpreadsheet(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'text'
+    url = 'grade_entry_forms/1'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_marks_spreadsheet(1)
+
+
+class TestUploadFeedbackFileReplace(AbstractTestClass):
+    request_verb = 'put'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/feedback_files/1'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        api.get_feedback_files = Mock(return_value=[{'id': 1, 'filename': 'test.txt'}])
+        yield api.upload_feedback_file(1, 1, 'test.txt', 'feedback info')
+
+    def test_discovers_mime_type(self, api, response_mock):
+        api.get_feedback_files = Mock(return_value=[{'id': 1, 'filename': 'test.txt'}])
+        api.upload_feedback_file(1, 1, 'test.txt', 'feedback info')
+        assert response_mock.call_args.kwargs['params']["mime_type"] == 'text/plain'
+
+    def test_called_with_mime_type(self, api, response_mock):
+        api.get_feedback_files = Mock(return_value=[{'id': 1, 'filename': 'test.txt'}])
+        api.upload_feedback_file(1, 1, 'test.txt', 'feedback info', mime_type='application/octet-stream')
+        params = {"filename": 'test.txt', "mime_type": 'application/octet-stream'}
+        assert response_mock.call_args.kwargs['params'] == params
+
+    def test_sends_file_data(self, api, response_mock):
+        api.get_feedback_files = Mock(return_value=[{'id': 1, 'filename': 'test.txt'}])
+        api.upload_feedback_file(1, 1, 'test.txt', 'feedback info')
+        files = {"file_content": ('test.txt', 'feedback info')}
+        assert response_mock.call_args.kwargs['files'] == files
+
+
+class TestUploadFeedbackFileNew(AbstractTestClass):
+    request_verb = 'post'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/feedback_files'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        api.get_feedback_files = Mock(return_value=[{'id': 1, 'filename': 'other.txt'}])
+        yield api.upload_feedback_file(1, 1, 'test.txt', 'feedback info')
+
+
+class TestUploadFeedbackFileNoOverwrite(TestUploadFeedbackFileNew):
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        api.get_feedback_files = Mock(return_value=[{'id': 1, 'filename': 'test.txt'}])
+        yield api.upload_feedback_file(1, 1, 'test.txt', 'feedback info', overwrite=False)
+
+
+class TestUploadTestGroupResultsJsonString(AbstractTestClass):
+    request_verb = 'post'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/test_group_results'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.upload_test_group_results(1, 1, 1, '{"data": []}')
+
+    def test_called_wth_basic_args(self, api, response_mock):
+        api.upload_test_group_results(1, 1, 1, '{"data": []}')
+        params = {"test_run_id": 1, "test_output": '{"data": []}'}
+        assert response_mock.call_args.kwargs['json'] == params
+
+
+class TestUploadTestGroupResultsDict(AbstractTestClass):
+    request_verb = 'post'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/test_group_results'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.upload_test_group_results(1, 1, 1, {"data": []})
+
+    def test_dict_changed_to_json_string(self, api, response_mock):
+        api.upload_test_group_results(1, 1, 1, {"data": []})
+        assert response_mock.call_args.kwargs['json']["test_output"] == '{"data": []}'
+
+
+class TestUploadAnnotations(AbstractTestClass):
+    request_verb = 'post'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/add_annotations'
+    annotations = [{
+        "filename": 'test.txt',
+        "annotation_category_name": "category",
+        "content": "something",
+        "line_start": 1,
+        "line_end": 2,
+        "column_start": 3,
+        "column_end": 10,
+    }]
+
+    @classmethod
+    @pytest.fixture
+    def basic_call(cls, api):
+        yield api.upload_annotations(1, 1, cls.annotations)
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.upload_annotations(1, 1, self.annotations)
+        params = {"annotations": self.annotations, "force_complete": False}
+        assert response_mock.call_args.kwargs['json'] == params
+
+    def test_called_with_force_complete(self, api, response_mock):
+        api.upload_annotations(1, 1, self.annotations, True)
+        params = {"annotations": self.annotations, "force_complete": True}
+        assert response_mock.call_args.kwargs['json'] == params
+
+
+class TestGetAnnotations(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/annotations'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_annotations(1, 1)
+
+
+class TestUpdateMarksSingleGroup(AbstractTestClass):
+    request_verb = 'put'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/update_marks'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.update_marks_single_group({"criteria_a": 10}, 1, 1)
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.update_marks_single_group({"criteria_a": 10}, 1, 1)
+        assert response_mock.call_args.kwargs['json'] == {"criteria_a": 10}
+
+
+class TestUpdateMarkingState(AbstractTestClass):
+    request_verb = 'put'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/update_marking_state'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.update_marking_state(1, 1, 'collected')
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.update_marking_state(1, 1, 'collected')
+        assert response_mock.call_args.kwargs['params'] == {"marking_state": 'collected'}
+
+
+class TestCreateExtraMarks(AbstractTestClass):
+    request_verb = 'post'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/create_extra_marks'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.create_extra_marks(1, 1, 10, 'a bonus!')
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.create_extra_marks(1, 1, 10, 'a bonus!')
+        assert response_mock.call_args.kwargs['params'] == {"extra_marks": 10, "description": 'a bonus!'}
+
+
+class TestRemoveExtraMarks(AbstractTestClass):
+    request_verb = 'delete'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/remove_extra_marks'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.remove_extra_marks(1, 1, 10, 'a bonus!')
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.remove_extra_marks(1, 1, 10, 'a bonus!')
+        assert response_mock.call_args.kwargs['params'] == {"extra_marks": 10, "description": 'a bonus!'}
+
+
+class TestGetFilesFromRepo(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'content'
+    url = 'assignments/1/groups/1/submission_files'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_files_from_repo(1, 1)
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.get_files_from_repo(1, 1)
+        assert response_mock.call_args.kwargs['params'] == {"collected": True}
+
+    def test_called_with_collected(self, api, response_mock):
+        api.get_files_from_repo(1, 1, collected=False)
+        assert response_mock.call_args.kwargs['params'] == {}
+
+    def test_called_with_filename(self, api, response_mock):
+        api.get_files_from_repo(1, 1, filename='test.txt')
+        assert response_mock.call_args.kwargs['params'] == {"collected": True, "filename": 'test.txt'}
+
+
+class TestUploadFolderToRepo(AbstractTestClass):
+    request_verb = 'post'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/submission_files/create_folders'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.upload_folder_to_repo(1, 1, 'subdir')
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.upload_folder_to_repo(1, 1, 'subdir')
+        assert response_mock.call_args.kwargs['params'] == {"folder_path": 'subdir'}
+
+
+class TestUploadFileToRepo(AbstractTestClass):
+    request_verb = 'post'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/submission_files'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.upload_file_to_repo(1, 1, 'test.txt', 'some content')
+
+    def test_discovers_mime_type(self, api, response_mock):
+        api.upload_file_to_repo(1, 1, 'test.txt', 'some content')
+        assert response_mock.call_args.kwargs['params']["mime_type"] == 'text/plain'
+
+    def test_called_with_mime_type(self, api, response_mock):
+        api.upload_file_to_repo(1, 1, 'test.txt', 'feedback info', mime_type='application/octet-stream')
+        params = {"filename": 'test.txt', "mime_type": 'application/octet-stream'}
+        assert response_mock.call_args.kwargs['params'] == params
+
+    def test_sends_file_data(self, api, response_mock):
+        api.upload_file_to_repo(1, 1, 'test.txt', 'some content')
+        files = {"file_content": ('test.txt', 'some content')}
+        assert response_mock.call_args.kwargs['files'] == files
+
+
+class TestRemoveFileFromRepo(AbstractTestClass):
+    request_verb = 'delete'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/submission_files/remove_file'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.remove_file_from_repo(1, 1, 'test.txt')
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.remove_file_from_repo(1, 1, 'test.txt')
+        assert response_mock.call_args.kwargs['params'] == {"filename": 'test.txt'}
+
+
+class TestRemoveFolderFromRepo(AbstractTestClass):
+    request_verb = 'delete'
+    response_format = 'json'
+    url = 'assignments/1/groups/1/submission_files/remove_folder'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.remove_folder_from_repo(1, 1, 'subdir')
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.remove_folder_from_repo(1, 1, 'subdir')
+        assert response_mock.call_args.kwargs['params'] == {"folder_path": 'subdir'}
+
+
+class TestGetTestSpecs(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'json'
+    url = 'assignments/1/test_specs'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_test_specs(1)
+
+
+class TestUpdateTestSpecs(AbstractTestClass):
+    request_verb = 'post'
+    response_format = 'json'
+    url = 'assignments/1/update_test_specs'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.update_test_specs(1, {})
+
+    def test_called_with_basic_params(self, api, response_mock):
+        specs = {'some': ['fake', 'data']}
+        api.update_test_specs(1, specs)
+        assert response_mock.call_args.kwargs['json'] == {"specs": specs}
+
+
+class TestGetTestFiles(AbstractTestClass):
+    request_verb = 'get'
+    response_format = 'content'
+    url = 'assignments/1/test_files'
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_test_files(1)
