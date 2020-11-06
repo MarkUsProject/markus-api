@@ -14,6 +14,8 @@ setuptools.setup(
     url="https://github.com/MarkUsProject/markus-api",
     packages=setuptools.find_packages(),
     install_requires=["requests==2.24.0"],
+    tests_require=["pytest==5.3.1"],
+    setup_requires=["pytest-runner"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
