@@ -57,10 +57,12 @@ class AbstractTestClass(abc.ABC):
         assert basic_call == self.response_format
 
     def test_called_with_correct_athorization(self, response_mock, basic_call):
-        assert response_mock.call_args.kwargs["headers"]["Authorization"] == f"MarkUsAuth {FAKE_API_KEY}"
+        _, kwargs = response_mock.call_args
+        assert kwargs["headers"]["Authorization"] == f"MarkUsAuth {FAKE_API_KEY}"
 
     def test_called_with_correct_url(self, response_mock, basic_call):
-        assert response_mock.call_args.args[0] == f"{FAKE_URL}/api/{self.url}.json"
+        args, _ = response_mock.call_args
+        assert args[0] == f"{FAKE_URL}/api/{self.url}.json"
 
 
 class TestGetAllUsers(AbstractTestClass):
@@ -87,7 +89,8 @@ class TestNewUser(AbstractTestClass):
     def test_called_with_basic_params(self, api, response_mock):
         api.new_user("test", "Student", "first", "last")
         params = {"user_name": "test", "type": "Student", "first_name": "first", "last_name": "last"}
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
     def test_called_with_section(self, api, response_mock):
         api.new_user("test", "Student", "first", "last", section_name="section")
@@ -98,7 +101,8 @@ class TestNewUser(AbstractTestClass):
             "last_name": "last",
             "section_name": "section",
         }
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
     def test_called_with_grace_credits(self, api, response_mock):
         api.new_user("test", "Student", "first", "last", grace_credits="3")
@@ -109,7 +113,8 @@ class TestNewUser(AbstractTestClass):
             "last_name": "last",
             "grace_credits": "3",
         }
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
 
 class TestGetAssignments(AbstractTestClass):
@@ -210,7 +215,8 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
             "show_total": True,
             "grade_entry_items": None,
         }
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
     def test_called_with_is_hidden(self, api, response_mock):
         now = datetime.datetime.now()
@@ -223,7 +229,8 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
             "show_total": True,
             "grade_entry_items": None,
         }
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
     def test_called_with_is_show_total(self, api, response_mock):
         now = datetime.datetime.now()
@@ -236,7 +243,8 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
             "show_total": False,
             "grade_entry_items": None,
         }
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
     def test_called_with_is_show_grade_entry_items(self, api, response_mock):
         now = datetime.datetime.now()
@@ -250,7 +258,8 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
             "show_total": True,
             "grade_entry_items": ge_items,
         }
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
 
 class TestUpdateMarksSpreadsheet(AbstractTestClass):
@@ -267,19 +276,22 @@ class TestUpdateMarksSpreadsheet(AbstractTestClass):
         now = datetime.datetime.now()
         api.update_marks_spreadsheet(1, "test", "description", now)
         params = {"short_identifier": "test", "description": "description", "date": now}
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
     def test_called_with_is_hidden(self, api, response_mock):
         now = datetime.datetime.now()
         api.update_marks_spreadsheet(1, "test", "description", now, is_hidden=False)
         params = {"short_identifier": "test", "description": "description", "date": now, "is_hidden": False}
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
     def test_called_with_is_show_total(self, api, response_mock):
         now = datetime.datetime.now()
         api.update_marks_spreadsheet(1, "test", "description", now, show_total=False)
         params = {"short_identifier": "test", "description": "description", "date": now, "show_total": False}
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
     def test_called_with_is_show_grade_entry_items(self, api, response_mock):
         now = datetime.datetime.now()
@@ -291,7 +303,8 @@ class TestUpdateMarksSpreadsheet(AbstractTestClass):
             "date": now,
             "grade_entry_items": ge_items,
         }
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
 
 class TestUpdateMarksSpreadsheetGrades(AbstractTestClass):
@@ -307,7 +320,8 @@ class TestUpdateMarksSpreadsheetGrades(AbstractTestClass):
     def test_called_with_basic_params(self, api, response_mock):
         api.update_marks_spreadsheets_grades(1, "some_user", {"some_column": 2})
         params = {"user_name": "some_user", "grade_entry_items": {"some_column": 2}}
-        assert response_mock.call_args.kwargs["json"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["json"] == params
 
 
 class TestGetMarksSpreadsheets(AbstractTestClass):
@@ -346,19 +360,22 @@ class TestUploadFeedbackFileReplace(AbstractTestClass):
     def test_discovers_mime_type(self, api, response_mock):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
         api.upload_feedback_file(1, 1, "test.txt", "feedback info")
-        assert response_mock.call_args.kwargs["params"]["mime_type"] == "text/plain"
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"]["mime_type"] == "text/plain"
 
     def test_called_with_mime_type(self, api, response_mock):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
         api.upload_feedback_file(1, 1, "test.txt", "feedback info", mime_type="application/octet-stream")
         params = {"filename": "test.txt", "mime_type": "application/octet-stream"}
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
     def test_sends_file_data(self, api, response_mock):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
         api.upload_feedback_file(1, 1, "test.txt", "feedback info")
         files = {"file_content": ("test.txt", "feedback info")}
-        assert response_mock.call_args.kwargs["files"] == files
+        _, kwargs = response_mock.call_args
+        assert kwargs["files"] == files
 
 
 class TestUploadFeedbackFileNew(AbstractTestClass):
@@ -394,7 +411,8 @@ class TestUploadTestGroupResultsJsonString(AbstractTestClass):
     def test_called_wth_basic_args(self, api, response_mock):
         api.upload_test_group_results(1, 1, 1, '{"data": []}')
         params = {"test_run_id": 1, "test_output": '{"data": []}'}
-        assert response_mock.call_args.kwargs["json"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["json"] == params
 
 
 class TestUploadTestGroupResultsDict(AbstractTestClass):
@@ -409,7 +427,8 @@ class TestUploadTestGroupResultsDict(AbstractTestClass):
 
     def test_dict_changed_to_json_string(self, api, response_mock):
         api.upload_test_group_results(1, 1, 1, {"data": []})
-        assert response_mock.call_args.kwargs["json"]["test_output"] == '{"data": []}'
+        _, kwargs = response_mock.call_args
+        assert kwargs["json"]["test_output"] == '{"data": []}'
 
 
 class TestUploadAnnotations(AbstractTestClass):
@@ -436,12 +455,14 @@ class TestUploadAnnotations(AbstractTestClass):
     def test_called_with_basic_params(self, api, response_mock):
         api.upload_annotations(1, 1, self.annotations)
         params = {"annotations": self.annotations, "force_complete": False}
-        assert response_mock.call_args.kwargs["json"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["json"] == params
 
     def test_called_with_force_complete(self, api, response_mock):
         api.upload_annotations(1, 1, self.annotations, True)
         params = {"annotations": self.annotations, "force_complete": True}
-        assert response_mock.call_args.kwargs["json"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["json"] == params
 
 
 class TestGetAnnotations(AbstractTestClass):
@@ -467,7 +488,8 @@ class TestUpdateMarksSingleGroup(AbstractTestClass):
 
     def test_called_with_basic_params(self, api, response_mock):
         api.update_marks_single_group({"criteria_a": 10}, 1, 1)
-        assert response_mock.call_args.kwargs["json"] == {"criteria_a": 10}
+        _, kwargs = response_mock.call_args
+        assert kwargs["json"] == {"criteria_a": 10}
 
 
 class TestUpdateMarkingState(AbstractTestClass):
@@ -482,7 +504,8 @@ class TestUpdateMarkingState(AbstractTestClass):
 
     def test_called_with_basic_params(self, api, response_mock):
         api.update_marking_state(1, 1, "collected")
-        assert response_mock.call_args.kwargs["params"] == {"marking_state": "collected"}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"marking_state": "collected"}
 
 
 class TestCreateExtraMarks(AbstractTestClass):
@@ -497,7 +520,8 @@ class TestCreateExtraMarks(AbstractTestClass):
 
     def test_called_with_basic_params(self, api, response_mock):
         api.create_extra_marks(1, 1, 10, "a bonus!")
-        assert response_mock.call_args.kwargs["params"] == {"extra_marks": 10, "description": "a bonus!"}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"extra_marks": 10, "description": "a bonus!"}
 
 
 class TestRemoveExtraMarks(AbstractTestClass):
@@ -512,7 +536,8 @@ class TestRemoveExtraMarks(AbstractTestClass):
 
     def test_called_with_basic_params(self, api, response_mock):
         api.remove_extra_marks(1, 1, 10, "a bonus!")
-        assert response_mock.call_args.kwargs["params"] == {"extra_marks": 10, "description": "a bonus!"}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"extra_marks": 10, "description": "a bonus!"}
 
 
 class TestGetFilesFromRepo(AbstractTestClass):
@@ -527,15 +552,18 @@ class TestGetFilesFromRepo(AbstractTestClass):
 
     def test_called_with_basic_params(self, api, response_mock):
         api.get_files_from_repo(1, 1)
-        assert response_mock.call_args.kwargs["params"] == {"collected": True}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"collected": True}
 
     def test_called_with_collected(self, api, response_mock):
         api.get_files_from_repo(1, 1, collected=False)
-        assert response_mock.call_args.kwargs["params"] == {}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {}
 
     def test_called_with_filename(self, api, response_mock):
         api.get_files_from_repo(1, 1, filename="test.txt")
-        assert response_mock.call_args.kwargs["params"] == {"collected": True, "filename": "test.txt"}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"collected": True, "filename": "test.txt"}
 
 
 class TestUploadFolderToRepo(AbstractTestClass):
@@ -550,7 +578,8 @@ class TestUploadFolderToRepo(AbstractTestClass):
 
     def test_called_with_basic_params(self, api, response_mock):
         api.upload_folder_to_repo(1, 1, "subdir")
-        assert response_mock.call_args.kwargs["params"] == {"folder_path": "subdir"}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"folder_path": "subdir"}
 
 
 class TestUploadFileToRepo(AbstractTestClass):
@@ -565,17 +594,20 @@ class TestUploadFileToRepo(AbstractTestClass):
 
     def test_discovers_mime_type(self, api, response_mock):
         api.upload_file_to_repo(1, 1, "test.txt", "some content")
-        assert response_mock.call_args.kwargs["params"]["mime_type"] == "text/plain"
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"]["mime_type"] == "text/plain"
 
     def test_called_with_mime_type(self, api, response_mock):
         api.upload_file_to_repo(1, 1, "test.txt", "feedback info", mime_type="application/octet-stream")
         params = {"filename": "test.txt", "mime_type": "application/octet-stream"}
-        assert response_mock.call_args.kwargs["params"] == params
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
 
     def test_sends_file_data(self, api, response_mock):
         api.upload_file_to_repo(1, 1, "test.txt", "some content")
         files = {"file_content": ("test.txt", "some content")}
-        assert response_mock.call_args.kwargs["files"] == files
+        _, kwargs = response_mock.call_args
+        assert kwargs["files"] == files
 
 
 class TestRemoveFileFromRepo(AbstractTestClass):
@@ -590,7 +622,8 @@ class TestRemoveFileFromRepo(AbstractTestClass):
 
     def test_called_with_basic_params(self, api, response_mock):
         api.remove_file_from_repo(1, 1, "test.txt")
-        assert response_mock.call_args.kwargs["params"] == {"filename": "test.txt"}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"filename": "test.txt"}
 
 
 class TestRemoveFolderFromRepo(AbstractTestClass):
@@ -605,7 +638,8 @@ class TestRemoveFolderFromRepo(AbstractTestClass):
 
     def test_called_with_basic_params(self, api, response_mock):
         api.remove_folder_from_repo(1, 1, "subdir")
-        assert response_mock.call_args.kwargs["params"] == {"folder_path": "subdir"}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"folder_path": "subdir"}
 
 
 class TestGetTestSpecs(AbstractTestClass):
@@ -632,7 +666,8 @@ class TestUpdateTestSpecs(AbstractTestClass):
     def test_called_with_basic_params(self, api, response_mock):
         specs = {"some": ["fake", "data"]}
         api.update_test_specs(1, specs)
-        assert response_mock.call_args.kwargs["json"] == {"specs": specs}
+        _, kwargs = response_mock.call_args
+        assert kwargs["json"] == {"specs": specs}
 
 
 class TestGetTestFiles(AbstractTestClass):
