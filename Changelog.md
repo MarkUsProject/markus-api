@@ -2,6 +2,7 @@
 ##[unreleased]
 - Added new methods for adding and removing extra marks (#15)
 - Fixed bug which caused file uploads to be PUT requests by default instead of POST (#22)
+- Rewrite everything to use the requests library (#26)
 
 ##[v0.1.0]
 - this release includes functions to call all API routes for MarkUs version 1.9.0 (#10, #12, #13, #14, #18)
