@@ -706,7 +706,7 @@ class TestCreateStarterFile(AbstractTestClass):
         api.create_starter_file(1, 1, file_path="test.txt", contents="content")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"filename": "test.txt"}
-        assert kwargs["files"] == {"filename": ("test.txt", "content")}
+        assert kwargs["files"] == {"file_content": ("test.txt", "content")}
 
 
 class TestCreateStarterFolder(AbstractTestClass):
