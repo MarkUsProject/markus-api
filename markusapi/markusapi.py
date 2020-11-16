@@ -14,20 +14,16 @@
 # (c) by the authors, 2008 - 2020.
 #
 
-import http.client
 import json
 import mimetypes
-from typing import Optional, List, Union, Dict, Tuple
+import requests
+from typing import Optional, List, Union, Dict
 from datetime import datetime
-from urllib.parse import urlparse, urlencode
-
-ResponseType = Tuple[int, str, bytes]
+from .response_parser import parse_response
 
 
 class Markus:
     """A class for interfacing with the MarkUs API."""
-
-    API_PATH = "/api"  # The root api path.
 
     def __init__(self, api_key: str, url: str) -> None:
         """
@@ -41,20 +37,26 @@ class Markus:
         url      -- the root domain of the MarkUs instance.
         """
         self.api_key = api_key
-        self.parsed_url = urlparse(url.strip())
-        assert self.parsed_url.scheme in ["http", "https"]
+        self.url = url
 
-    def get_all_users(self) -> List[dict]:
+    @property
+    def _auth_header(self):
+        return {"Authorization": f"MarkUsAuth {self.api_key}"}
+
+    def _url(self, tail=""):
+        return f"{self.url}/api/{tail}.json"
+
+    @parse_response("json")
+    def get_all_users(self) -> requests.Response:
         """
         Return a list of every user in the MarkUs instance.
         Each user is a dictionary object, with the following keys:
         'id', 'user_name', 'first_name', 'last_name',
         'type', 'grace_credits', 'notes_count', 'hidden'.
         """
-        params = None
-        response = self._submit_request(params, "/api/users.json", "GET")
-        return Markus._decode_json_response(response)
+        return requests.get(self._url("users"), headers=self._auth_header)
 
+    @parse_response("json")
     def new_user(
         self,
         user_name: str,
@@ -63,7 +65,7 @@ class Markus:
         last_name: str,
         section_name: Optional[str] = None,
         grace_credits: Optional[str] = None,
-    ) -> ResponseType:
+    ) -> requests.Response:
         """
         Add a new user to the MarkUs database.
         Returns a list containing the response's status,
@@ -74,71 +76,66 @@ class Markus:
             params["section_name"] = section_name
         if grace_credits is not None:
             params["grace_credits"] = grace_credits
-        return self._submit_request(params, "/api/users", "POST")
+        return requests.post(self._url("users"), params=params, headers=self._auth_header)
 
-    def get_assignments(self) -> List[dict]:
+    @parse_response("json")
+    def get_assignments(self) -> requests.Response:
         """
         Return a list of all assignments.
         """
-        params = None
-        response = self._submit_request(params, "/api/assignments.json", "GET")
-        return Markus._decode_json_response(response)
+        return requests.get(self._url("assignments"), headers=self._auth_header)
 
-    def get_groups(self, assignment_id: int) -> List[dict]:
+    @parse_response("json")
+    def get_groups(self, assignment_id: int) -> requests.Response:
         """
         Return a list of all groups associated with the given assignment.
         """
-        params = None
-        path = Markus._get_path(assignments=assignment_id, groups=None) + ".json"
-        response = self._submit_request(params, path, "GET")
-        return Markus._decode_json_response(response)
+        return requests.get(self._url(f"assignments/{assignment_id}/groups"), headers=self._auth_header)
 
-    def get_groups_by_name(self, assignment_id: int) -> dict:
+    @parse_response("json")
+    def get_groups_by_name(self, assignment_id: int) -> requests.Response:
         """
         Return a dictionary mapping group names to group ids.
         """
-        params = None
-        path = Markus._get_path(assignments=assignment_id, groups=None, group_ids_by_name=None) + ".json"
-        response = self._submit_request(params, path, "GET")
-        return Markus._decode_json_response(response)
+        return requests.get(
+            self._url(f"assignments/{assignment_id}/groups/group_ids_by_name"), headers=self._auth_header
+        )
 
-    def get_group(self, assignment_id: int, group_id: int) -> dict:
+    @parse_response("json")
+    def get_group(self, assignment_id: int, group_id: int) -> requests.Response:
         """
         Return the group info associated with the given id and assignment.
         """
-        params = None
-        path = Markus._get_path(assignments=assignment_id, groups=group_id) + ".json"
-        response = self._submit_request(params, path, "GET")
-        return Markus._decode_json_response(response)
+        return requests.get(self._url(f"assignments/{assignment_id}/groups/{group_id}"), headers=self._auth_header)
 
-    def get_feedback_files(self, assignment_id: int, group_id: int) -> List[dict]:
+    @parse_response("json")
+    def get_feedback_files(self, assignment_id: int, group_id: int) -> requests.Response:
         """
         Get the feedback files info associated with the assignment and group.
         """
-        params = {}
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, feedback_files=None) + ".json"
-        response = self._submit_request(params, path, "GET")
-        return Markus._decode_json_response(response)
+        return requests.get(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/feedback_files"), headers=self._auth_header
+        )
 
-    def get_feedback_file(self, assignment_id: int, group_id: int, feedback_file_id: int) -> str:
+    @parse_response("content")
+    def get_feedback_file(self, assignment_id: int, group_id: int, feedback_file_id: int) -> requests.Response:
         """
         Get the feedback file associated with the given id, assignment and group.
         WARNING: This will fail for non-text feedback files
         """
-        params = {}
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, feedback_files=feedback_file_id) + ".json"
-        response = self._submit_request(params, path, "GET")
-        return Markus._decode_text_response(response)
+        return requests.get(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/feedback_files/{feedback_file_id}"),
+            headers=self._auth_header,
+        )
 
-    def get_grades_summary(self, assignment_id: int) -> str:
+    @parse_response("text")
+    def get_grades_summary(self, assignment_id: int) -> requests.Response:
         """
         Get grades summary csv file as a string.
         """
-        params = {}
-        path = Markus._get_path(assignments=assignment_id, grades_summary=None) + ".json"
-        response = self._submit_request(params, path, "GET")
-        return Markus._decode_text_response(response)
+        return requests.get(self._url(f"assignments/{assignment_id}/grades_summary"), headers=self._auth_header)
 
+    @parse_response("json")
     def new_marks_spreadsheet(
         self,
         short_identifier: str,
@@ -146,8 +143,8 @@ class Markus:
         date: Optional[datetime] = None,
         is_hidden: bool = True,
         show_total: bool = True,
-        grade_entry_items: Optional[Dict[str, Union[str, bool, float]]] = None,
-    ) -> ResponseType:
+        grade_entry_items: Optional[List[Dict[str, Union[str, bool, float]]]] = None,
+    ) -> requests.Response:
         """
         Create a new marks spreadsheet
         """
@@ -159,9 +156,9 @@ class Markus:
             "show_total": show_total,
             "grade_entry_items": grade_entry_items,
         }
-        path = Markus._get_path(grade_entry_forms=None) + ".json"
-        return self._submit_request(params, path, "POST", content_type="application/json")
+        return requests.post(self._url("grade_entry_forms"), params=params, headers=self._auth_header)
 
+    @parse_response("json")
     def update_marks_spreadsheet(
         self,
         spreadsheet_id: int,
@@ -170,8 +167,8 @@ class Markus:
         date: Optional[datetime] = None,
         is_hidden: Optional[bool] = None,
         show_total: Optional[bool] = None,
-        grade_entry_items: Optional[Dict[str, Union[str, bool, float]]] = None,
-    ) -> ResponseType:
+        grade_entry_items: Optional[List[Dict[str, Union[str, bool, float]]]] = None,
+    ) -> requests.Response:
         """
         Update an existing marks spreadsheet
         """
@@ -186,34 +183,32 @@ class Markus:
         for name in list(params):
             if params[name] is None:
                 params.pop(name)
-        path = Markus._get_path(grade_entry_forms=spreadsheet_id) + ".json"
-        return self._submit_request(params, path, "PUT", content_type="application/json")
+        return requests.put(self._url(f"grade_entry_forms/{spreadsheet_id}"), params=params, headers=self._auth_header)
 
+    @parse_response("json")
     def update_marks_spreadsheets_grades(
         self, spreadsheet_id: int, user_name: str, grades_per_column: Dict[str, float]
-    ) -> ResponseType:
+    ) -> requests.Response:
         params = {"user_name": user_name, "grade_entry_items": grades_per_column}
-        path = Markus._get_path(grade_entry_forms=spreadsheet_id, update_grades=None) + ".json"
-        return self._submit_request(params, path, "PUT", content_type="application/json")
+        return requests.put(
+            self._url(f"grade_entry_forms/{spreadsheet_id}/update_grades"), json=params, headers=self._auth_header
+        )
 
-    def get_marks_spreadsheets(self) -> List[dict]:
+    @parse_response("json")
+    def get_marks_spreadsheets(self) -> requests.Response:
         """
         Get all marks spreadsheets.
         """
-        params = {}
-        path = Markus._get_path(grade_entry_forms=None) + ".json"
-        response = self._submit_request(params, path, "GET")
-        return Markus._decode_json_response(response)
+        return requests.get(self._url(f"grade_entry_forms"), headers=self._auth_header)
 
-    def get_marks_spreadsheet(self, spreadsheet_id: int) -> str:
+    @parse_response("text")
+    def get_marks_spreadsheet(self, spreadsheet_id: int) -> requests.Response:
         """
         Get the marks spreadsheet associated with the given id.
         """
-        params = {}
-        path = Markus._get_path(grade_entry_forms=spreadsheet_id) + ".json"
-        response = self._submit_request(params, path, "GET")
-        return Markus._decode_text_response(response)
+        return requests.get(self._url(f"grade_entry_forms/{spreadsheet_id}"), headers=self._auth_header)
 
+    @parse_response("json")
     def upload_feedback_file(
         self,
         assignment_id: int,
@@ -222,7 +217,7 @@ class Markus:
         contents: Union[str, bytes],
         mime_type: Optional[str] = None,
         overwrite: bool = True,
-    ) -> ResponseType:
+    ) -> requests.Response:
         """
         Upload a feedback file to Markus.
 
@@ -234,29 +229,39 @@ class Markus:
         mime_type     -- mime type of title file, if None then the mime type will be guessed based on the file extension
         overwrite     -- whether to overwrite a feedback file with the same name that already exists in Markus
         """
-        feedback_file_id = None
+        url_content = f"assignments/{assignment_id}/groups/{group_id}/feedback_files"
         if overwrite:
             feedback_files = self.get_feedback_files(assignment_id, group_id)
             feedback_file_id = next((ff.get("id") for ff in feedback_files if ff.get("filename") == title), None)
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, feedback_files=None)
-        request_type = "POST"
-        if feedback_file_id:
-            path = "{}/{}".format(path, feedback_file_id)
-            request_type = "PUT"
+            if feedback_file_id is not None:
+                url_content += f"/{feedback_file_id}"
+            else:
+                overwrite = False
+        files = {"file_content": (title, contents)}
+        params = {"filename": title, "mime_type": mime_type or mimetypes.guess_type(title)[0]}
+        if overwrite:
+            return requests.put(self._url(url_content), files=files, params=params, headers=self._auth_header)
+        else:
+            return requests.post(self._url(url_content), files=files, params=params, headers=self._auth_header)
 
-        return self._do_file_upload(path, title, contents, mime_type, request_type)
-
+    @parse_response("json")
     def upload_test_group_results(
-        self, assignment_id: int, group_id: int, test_run_id: int, test_output: str
-    ) -> ResponseType:
+        self, assignment_id: int, group_id: int, test_run_id: int, test_output: Union[str, Dict]
+    ) -> requests.Response:
         """ Upload test results to Markus """
+        if not isinstance(test_output, str):
+            test_output = json.dumps(test_output)
         params = {"test_run_id": test_run_id, "test_output": test_output}
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, test_group_results=None)
-        return self._submit_request(params, path, "POST")
+        return requests.post(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/test_group_results"),
+            json=params,
+            headers=self._auth_header,
+        )
 
+    @parse_response("json")
     def upload_annotations(
-        self, assignment_id: int, group_id: int, annotations: dict, force_complete: bool = False
-    ) -> ResponseType:
+        self, assignment_id: int, group_id: int, annotations: List, force_complete: bool = False
+    ) -> requests.Response:
         """
         Each element of annotations must be a dictionary with the following keys:
             - filename
@@ -270,20 +275,26 @@ class Markus:
         This currently only works for plain-text file submissions.
         """
         params = {"annotations": annotations, "force_complete": force_complete}
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, add_annotations=None)
-        return self._submit_request(params, path, "POST", "application/json")
+        return requests.post(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/add_annotations"),
+            json=params,
+            headers=self._auth_header,
+        )
 
-    def get_annotations(self, assignment_id: int, group_id: Optional[int] = None) -> List[Dict]:
+    @parse_response("json")
+    def get_annotations(self, assignment_id: int, group_id: Optional[int] = None) -> requests.Response:
         """
         Return a list of dictionaries containing information for each annotation in the assignment
         with id = assignment_id. If group_id is not None, return only annotations for the given group.
         """
-        params = None
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, annotations=None) + ".json"
-        response = self._submit_request(params, path, "GET")
-        return Markus._decode_json_response(response)
+        return requests.get(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/annotations"), headers=self._auth_header
+        )
 
-    def update_marks_single_group(self, criteria_mark_map: dict, assignment_id: int, group_id: int) -> ResponseType:
+    @parse_response("json")
+    def update_marks_single_group(
+        self, criteria_mark_map: dict, assignment_id: int, group_id: int
+    ) -> requests.Response:
         """
         Update the marks of a single group.
         Only the marks specified in criteria_mark_map will be changed.
@@ -299,19 +310,56 @@ class Markus:
         assignment_id     -- the assignment's id
         group_id          -- the id of the group whose marks we are updating
         """
-        params = criteria_mark_map
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, update_marks=None)
-        return self._submit_request(params, path, "PUT")
+        return requests.put(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/update_marks"),
+            json=criteria_mark_map,
+            headers=self._auth_header,
+        )
 
-    def update_marking_state(self, assignment_id: int, group_id: int, new_marking_state: str) -> ResponseType:
+    @parse_response("json")
+    def update_marking_state(self, assignment_id: int, group_id: int, new_marking_state: str) -> requests.Response:
         """ Update marking state for a single group to either 'complete' or 'incomplete' """
         params = {"marking_state": new_marking_state}
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, update_marking_state=None)
-        return self._submit_request(params, path, "PUT")
+        return requests.put(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/update_marking_state"),
+            params=params,
+            headers=self._auth_header,
+        )
 
+    @parse_response("json")
+    def create_extra_marks(
+        self, assignment_id: int, group_id: int, extra_marks: float, description: str
+    ) -> requests.Response:
+        """
+        Create new extra mark for the particular group.
+        Mark specified in extra_marks will be created
+        """
+        params = {"extra_marks": extra_marks, "description": description}
+        return requests.post(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/create_extra_marks"),
+            params=params,
+            headers=self._auth_header,
+        )
+
+    @parse_response("json")
+    def remove_extra_marks(
+        self, assignment_id: int, group_id: int, extra_marks: float, description: str
+    ) -> requests.Response:
+        """
+        Remove the extra mark for the particular group.
+        Mark specified in extra_marks will be removed
+        """
+        params = {"extra_marks": extra_marks, "description": description}
+        return requests.delete(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/remove_extra_marks"),
+            params=params,
+            headers=self._auth_header,
+        )
+
+    @parse_response("content")
     def get_files_from_repo(
         self, assignment_id: int, group_id: int, filename: Optional[str] = None, collected: bool = True
-    ) -> Optional[bytes]:
+    ) -> requests.Response:
         """
         Return file content from the submission of a single group. If <filename> is specified,
         return the content of a single file, otherwise return the content of a zipfile containing
@@ -322,21 +370,27 @@ class Markus:
 
         The method returns None if there are no files to collect.
         """
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, submission_files=None) + ".json"
         params = {}
         if collected:
             params["collected"] = collected
         if filename:
             params["filename"] = filename
-        response = self._submit_request(params, path, "GET")
-        if response[0] == 200:
-            return response[2]
+        return requests.get(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/submission_files"),
+            params=params,
+            headers=self._auth_header,
+        )
 
-    def upload_folder_to_repo(self, assignment_id: int, group_id: int, folder_path: str) -> ResponseType:
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, submission_files=None, create_folders=None)
+    @parse_response("json")
+    def upload_folder_to_repo(self, assignment_id: int, group_id: int, folder_path: str) -> requests.Response:
         params = {"folder_path": folder_path}
-        return self._submit_request(params, path, "POST")
+        return requests.post(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/submission_files/create_folders"),
+            params=params,
+            headers=self._auth_header,
+        )
 
+    @parse_response("json")
     def upload_file_to_repo(
         self,
         assignment_id: int,
@@ -344,7 +398,7 @@ class Markus:
         file_path: str,
         contents: Union[str, bytes],
         mime_type: Optional[str] = None,
-    ) -> ResponseType:
+    ) -> requests.Response:
         """
         Upload a file at file_path with content contents to the assignment directory
         in the repo for group with id group_id.
@@ -354,149 +408,70 @@ class Markus:
         of the assignment with id assignment_id should be A1 and the file_path argument should be:
         'somesubdir/myfile.txt'
         """
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, submission_files=None)
+        files = {"file_content": (file_path, contents)}
+        params = {"filename": file_path, "mime_type": mime_type or mimetypes.guess_type(file_path)[0]}
+        return requests.post(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/submission_files"),
+            files=files,
+            params=params,
+            headers=self._auth_header,
+        )
 
-        return self._do_file_upload(path, file_path, contents, mime_type)
-
-    def remove_file_from_repo(self, assignment_id: int, group_id: int, file_path: str) -> ResponseType:
+    @parse_response("json")
+    def remove_file_from_repo(self, assignment_id: int, group_id: int, file_path: str) -> requests.Response:
         """
         Remove a file at file_path from the assignment directory in the repo for group with id group_id.
 
         The file_path should be a relative path from the assignment directory of a repository.
-        For example, if you want to upload a file to A1/somesubdir/myfile.txt then the short identifier
+        For example, if you want to remove a file A1/somesubdir/myfile.txt then the short identifier
         of the assignment with id assignment_id should be A1 and the file_path argument should be:
         'somesubdir/myfile.txt'
         """
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, submission_files=None, remove_file=None)
         params = {"filename": file_path}
-        return self._submit_request(params, path, "DELETE")
+        return requests.delete(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/submission_files/remove_file"),
+            params=params,
+            headers=self._auth_header,
+        )
 
-    def remove_folder_from_repo(self, assignment_id: int, group_id: int, folder_path: str) -> ResponseType:
-        path = Markus._get_path(assignments=assignment_id, groups=group_id, submission_files=None, remove_folder=None)
+    @parse_response("json")
+    def remove_folder_from_repo(self, assignment_id: int, group_id: int, folder_path: str) -> requests.Response:
+        """
+        Remove a folder at folder_path and all its contents for group with id grou;_id.
+
+        The file_path should be a relative path from the assignment directory of a repository.
+        For example, if you want to remove a folder A1/somesubdir/ then the short identifier
+        of the assignment with id assignment_id should be A1 and the folder_path argument should be:
+        'somesubdir/'
+        """
         params = {"folder_path": folder_path}
-        return self._submit_request(params, path, "DELETE")
+        return requests.delete(
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/submission_files/remove_folder"),
+            params=params,
+            headers=self._auth_header,
+        )
 
-    def get_test_specs(self, assignment_id: int) -> Dict:
+    @parse_response("json")
+    def get_test_specs(self, assignment_id: int) -> requests.Response:
         """
         Get the test spec settings for an assignment with id <assignment_id>.
         """
-        path = Markus._get_path(assignments=assignment_id, test_specs=None) + ".json"
-        params = None
-        response = self._submit_request(params, path, "GET")
-        return Markus._decode_json_response(response)
+        return requests.get(self._url(f"assignments/{assignment_id}/test_specs"), headers=self._auth_header)
 
-    def update_test_specs(self, assignment_id: int, specs: Dict) -> ResponseType:
+    @parse_response("json")
+    def update_test_specs(self, assignment_id: int, specs: Dict) -> requests.Response:
         """
         Update the test spec settings for an assignment with id <assignment_id> to be <specs>.
         """
-        path = Markus._get_path(assignments=assignment_id, update_test_specs=None) + ".json"
         params = {"specs": specs}
-        return self._submit_request(params, path, "POST", content_type="application/json")
+        return requests.post(
+            self._url(f"assignments/{assignment_id}/update_test_specs"), json=params, headers=self._auth_header
+        )
 
-    def get_test_files(self, assignment_id: int) -> Optional[bytes]:
+    @parse_response("content")
+    def get_test_files(self, assignment_id: int) -> requests.Response:
         """
         Return the content of a zipfile containing the content of all files uploaded for automated testing of
         the assignment with id <assignment_id>.
         """
-        path = Markus._get_path(assignments=assignment_id, test_files=None) + ".json"
-        params = None
-        response = self._submit_request(params, path, "GET")
-        if response[0] == 200:
-            return response[2]
-
-    # Helpers
-
-    def _submit_request(
-        self,
-        params: Optional[dict],
-        path: str,
-        request_type: str,
-        content_type: str = "application/x-www-form-urlencoded",
-    ) -> ResponseType:
-        """ Return result from _do_submit_request after formatting the params and setting headers """
-        headers = {"Content-type": content_type}
-        if params is not None:
-            if content_type == "application/x-www-form-urlencoded":
-                # simple params, sent as form query string (needs url encoding of reserved and non-alphanumeric chars)
-                params = urlencode(params)
-            elif content_type == "multipart/form-data":
-                # complex params like binary files, sent as-is (assumes already-encoded data)
-                pass
-            elif content_type == "application/json":
-                # json-encoded params
-                params = json.dumps(params)
-            if not isinstance(params, str):
-                raise ValueError("If the params are not a string type object please provide a valid content_type")
-        if request_type == "GET":  # we only want this for GET requests
-            headers["Accept"] = "text/plain"
-        return self._do_submit_request(params, path, request_type, headers)
-
-    def _do_submit_request(self, params: Optional[str], path: str, request_type: str, headers: dict) -> ResponseType:
-        """
-        Perform the HTTP/HTTPS request. Return a list
-        containing the response's status, reason, and content.
-
-        Keyword arguments:
-        params       -- contains the parameters of the request
-        path         -- route to the resource we are targetting
-        request_type -- the desired HTTP method (usually 'GET' or 'POST')
-        """
-        auth_header = "MarkUsAuth {}".format(self.api_key)
-        headers["Authorization"] = auth_header
-        if self.parsed_url.scheme == "http":
-            conn = http.client.HTTPConnection(self.parsed_url.netloc)
-        elif self.parsed_url.scheme == "https":
-            conn = http.client.HTTPSConnection(self.parsed_url.netloc)
-        else:
-            raise ValueError("Panic! Neither http nor https URL.")
-        conn.request(request_type, self.parsed_url.path + path, params, headers)
-        resp = conn.getresponse()
-        lst = (resp.status, resp.reason, resp.read())
-        conn.close()
-        return lst
-
-    def _do_file_upload(
-        self,
-        path: str,
-        file_path: str,
-        contents: Union[str, bytes],
-        mime_type: Optional[str] = None,
-        request_type: str = "POST",
-    ) -> ResponseType:
-        """
-        Helper that performs requests of <request_type> to <path> that involves uploading a file named
-        <file_path> containing <content>. If <mime_type> is None, the mime type of the file will be guessed.
-        """
-        if mime_type is None:
-            mime_type = mimetypes.guess_type(file_path)[0]
-            if mime_type is None:
-                raise ValueError(
-                    "if the mime_type argument is not given you must provide a title file with a valid extension"
-                )
-
-        if isinstance(contents, str):
-            params = {"filename": file_path, "file_content": contents, "mime_type": mime_type}
-            content_type = "application/x-www-form-urlencoded"
-        else:  # binary data
-            params = {
-                "filename": file_path.encode("utf-8"),
-                "file_content": contents,
-                "mime_type": mime_type.encode("utf-8"),
-            }
-            content_type = "multipart/form-data"
-        return self._submit_request(params, path, request_type, content_type)
-
-    @staticmethod
-    def _get_path(**kwargs: Optional[int]) -> str:
-        path = "/".join([str(v) for vals in kwargs.items() for v in vals if v is not None])
-        return f"{Markus.API_PATH}/{path}"
-
-    @staticmethod
-    def _decode_text_response(resp: ResponseType) -> str:
-        """Converts response from _submit_request into a utf-8 string."""
-        return resp[2].decode("utf-8")
-
-    @staticmethod
-    def _decode_json_response(resp: ResponseType) -> Union[List[Dict], Dict]:
-        """Converts response from _submit_request into python dict."""
-        return json.loads(Markus._decode_text_response(resp))
+        return requests.get(self._url(f"assignments/{assignment_id}/test_files"), headers=self._auth_header)
