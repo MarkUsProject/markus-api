@@ -1,6 +1,7 @@
 # Changelog
 
 ## [unreleased]
+- Added new methods for managing starter files (#29)
 
 ## [v0.2.0]
 - Added new methods for adding and removing extra marks (#15)
