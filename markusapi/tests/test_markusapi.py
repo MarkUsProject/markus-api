@@ -679,3 +679,160 @@ class TestGetTestFiles(AbstractTestClass):
     @pytest.fixture
     def basic_call(api):
         yield api.get_test_files(1)
+
+
+class TestGetStarterFileEntries(AbstractTestClass):
+    request_verb = "get"
+    response_format = "json"
+    url = "assignments/1/starter_file_groups/1/entries"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_starter_file_entries(1, 1)
+
+
+class TestCreateStarterFile(AbstractTestClass):
+    request_verb = "post"
+    response_format = "json"
+    url = "assignments/1/starter_file_groups/1/create_file"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.create_starter_file(1, 1, "test.txt", "content")
+
+    def test_called_with_filename_and_content(self, api, response_mock):
+        api.create_starter_file(1, 1, file_path="test.txt", contents="content")
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"filename": "test.txt"}
+        assert kwargs["files"] == {"file_content": ("test.txt", "content")}
+
+
+class TestCreateStarterFolder(AbstractTestClass):
+    request_verb = "post"
+    response_format = "json"
+    url = "assignments/1/starter_file_groups/1/create_folder"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.create_starter_folder(1, 1, "subdir")
+
+    def test_called_with_filename_and_content(self, api, response_mock):
+        api.create_starter_folder(1, 1, folder_path="subdir")
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"folder_path": "subdir"}
+
+
+class TestRemoveStarterFile(AbstractTestClass):
+    request_verb = "delete"
+    response_format = "json"
+    url = "assignments/1/starter_file_groups/1/remove_file"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.remove_starter_file(1, 1, "test.txt")
+
+    def test_called_with_filename(self, api, response_mock):
+        api.remove_starter_file(1, 1, file_path="test.txt")
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"filename": "test.txt"}
+
+
+class TestRemoveStarterFolder(AbstractTestClass):
+    request_verb = "delete"
+    response_format = "json"
+    url = "assignments/1/starter_file_groups/1/remove_folder"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.remove_starter_folder(1, 1, "subdir")
+
+    def test_called_with_filename_and_content(self, api, response_mock):
+        api.remove_starter_folder(1, 1, folder_path="subdir")
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"folder_path": "subdir"}
+
+
+class TestDownloadStarterFileEntries(AbstractTestClass):
+    request_verb = "get"
+    response_format = "content"
+    url = "assignments/1/starter_file_groups/1/download_entries"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.download_starter_file_entries(1, 1)
+
+
+class TestDownloadStarterFileGroups(AbstractTestClass):
+    request_verb = "get"
+    response_format = "json"
+    url = "assignments/1/starter_file_groups"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_starter_file_groups(1)
+
+
+class TestCreateStarterFileGroup(AbstractTestClass):
+    request_verb = "post"
+    response_format = "json"
+    url = "assignments/1/starter_file_groups"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.create_starter_file_group(1)
+
+
+class TestGetStarterFileGroup(AbstractTestClass):
+    request_verb = "get"
+    response_format = "json"
+    url = "assignments/1/starter_file_groups/1"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.get_starter_file_group(1, 1)
+
+
+class TestUpdateStarterFileGroup(AbstractTestClass):
+    request_verb = "put"
+    response_format = "json"
+    url = "assignments/1/starter_file_groups/1"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.update_starter_file_group(1, 1)
+
+    def test_called_with_name(self, api, response_mock):
+        api.update_starter_file_group(1, 1, name="some_name")
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"name": "some_name"}
+
+    def test_called_with_entry_name(self, api, response_mock):
+        api.update_starter_file_group(1, 1, entry_rename="some_entry_name")
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"entry_rename": "some_entry_name"}
+
+    def test_called_with_use_rename(self, api, response_mock):
+        api.update_starter_file_group(1, 1, use_rename=True)
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == {"use_rename": True}
+
+
+class TestDeleteStarterFileGroup(AbstractTestClass):
+    request_verb = "delete"
+    response_format = "json"
+    url = "assignments/1/starter_file_groups/1"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.delete_starter_file_group(1, 1)
