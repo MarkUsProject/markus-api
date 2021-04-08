@@ -407,7 +407,7 @@ class TestUploadFeedbackFileWithTestRunID(AbstractTestClass):
     @pytest.fixture
     def basic_call(api):
         api.get_feedback_files_with_test_run_id = Mock(return_value=[{"id": 1, "filename": "other.txt"}])
-        yield api.upload_feedback_file_with_test_run_id(1, "test.txt", "feedback info", overwrite=True)
+        yield api.upload_feedback_file_with_test_run_id(1, "test.txt", "feedback info")
 
 
 class TestUploadTestGroupResultsJsonString(AbstractTestClass):
