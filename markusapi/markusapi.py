@@ -208,6 +208,22 @@ class Markus:
         """
         return requests.get(self._url(f"grade_entry_forms/{spreadsheet_id}"), headers=self._auth_header)
 
+    def _upload_feedback_file_internal(
+        self,
+        url_content: str,
+        files: dict,
+        params: dict,
+        overwrite: bool = True,
+    ) -> requests.Response:
+        if params["mime_type"] == None:
+            params["mime_type"] = "text/plain"
+        if overwrite:
+            response = requests.put(self._url(url_content), files=files, params=params, headers=self._auth_header)
+            raise Exception(response)
+        else:
+            response = requests.post(self._url(url_content), files=files, params=params, headers=self._auth_header)
+            raise Exception(response.text)
+    
     @parse_response("json")
     def upload_feedback_file(
         self,
@@ -239,10 +255,23 @@ class Markus:
                 overwrite = False
         files = {"file_content": (title, contents)}
         params = {"filename": title, "mime_type": mime_type or mimetypes.guess_type(title)[0]}
+        return self._upload_feedback_file_internal(url_content, files, params, overwrite)
+
+    @parse_response("json")
+    def upload_feedback_file_with_test_run_id(
+        self,
+        test_run_id: int,
+        title: str,
+        contents: Union[str, bytes],
+        mime_type: Optional[str] = None,
+        overwrite: bool = True,
+    ) -> requests.Response:
+        url_content = f"feedback_files"
         if overwrite:
-            return requests.put(self._url(url_content), files=files, params=params, headers=self._auth_header)
-        else:
-            return requests.post(self._url(url_content), files=files, params=params, headers=self._auth_header)
+            pass
+        files = {"file_content": (title, contents)}
+        params = {"filename": title, "mime_type": mime_type or mimetypes.guess_type(title)[0], "test_run_id": test_run_id}
+        return self._upload_feedback_file_internal(url_content, files, params, False)
 
     @parse_response("json")
     def upload_test_group_results(
