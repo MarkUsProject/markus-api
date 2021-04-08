@@ -398,6 +398,18 @@ class TestUploadFeedbackFileNoOverwrite(TestUploadFeedbackFileNew):
         yield api.upload_feedback_file(1, 1, "test.txt", "feedback info", overwrite=False)
 
 
+class TestUploadFeedbackFileWithTestRunID(AbstractTestClass):
+    request_verb = "post"
+    response_format = "json"
+    url = "feedback_files"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        api.get_feedback_files_with_test_run_id = Mock(return_value=[{"id": 1, "filename": "other.txt"}])
+        yield api.upload_feedback_file_with_test_run_id(1, "test.txt", "feedback info", overwrite=True)
+
+
 class TestUploadTestGroupResultsJsonString(AbstractTestClass):
     request_verb = "post"
     response_format = "json"

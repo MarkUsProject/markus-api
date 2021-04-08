@@ -117,6 +117,14 @@ class Markus:
             self._url(f"assignments/{assignment_id}/groups/{group_id}/feedback_files"), headers=self._auth_header
         )
 
+    def get_feedback_files_with_test_run_id(self, test_run_id: int) -> requests.Response:
+        """
+        Get the feedback files info associated with the test run.
+        """
+        return requests.get(
+            self._url(f"feedback_files?test_run_id={test_run_id}", headers=self._auth_header)
+        )
+
     @parse_response("content")
     def get_feedback_file(self, assignment_id: int, group_id: int, feedback_file_id: int) -> requests.Response:
         """
@@ -268,7 +276,12 @@ class Markus:
     ) -> requests.Response:
         url_content = f"feedback_files"
         if overwrite:
-            pass
+            feedback_files = self.get_feedback_files_with_test_run_id(test_run_id)
+            feedback_file_id = next((ff.get("id") for ff in feedback_files if ff.get("filename") == title), None)
+            if feedback_file_id is not None:
+                url_content += f"/{feedback_file_id}"
+            else:
+                overwrite = False
         files = {"file_content": (title, contents)}
         params = {"filename": title, "mime_type": mime_type or mimetypes.guess_type(title)[0], "test_run_id": test_run_id}
         return self._upload_feedback_file_internal(url_content, files, params, False)
