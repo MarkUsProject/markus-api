@@ -219,10 +219,9 @@ class Markus:
             params["mime_type"] = "text/plain"
         if overwrite:
             response = requests.put(self._url(url_content), files=files, params=params, headers=self._auth_header)
-            raise Exception(response)
         else:
             response = requests.post(self._url(url_content), files=files, params=params, headers=self._auth_header)
-            raise Exception(response.text)
+        return response
     
     @parse_response("json")
     def upload_feedback_file(
