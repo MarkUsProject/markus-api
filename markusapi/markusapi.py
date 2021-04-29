@@ -109,20 +109,16 @@ class Markus:
         return requests.get(self._url(f"assignments/{assignment_id}/groups/{group_id}"), headers=self._auth_header)
 
     @parse_response("json")
-    def get_feedback_files(self, assignment_id: int, group_id: int) -> requests.Response:
+    def get_feedback_files(self, assignment_id: int, group_id: int, test_run_id: Optional[int] = None) -> requests.Response:
         """
         Get the feedback files info associated with the assignment and group.
         """
+        url = f"assignments/{assignment_id}/groups/{group_id}/feedback_files"
+        params = dict()
+        if test_run_id:
+            params['test_run_id'] = test_run_id
         return requests.get(
-            self._url(f"assignments/{assignment_id}/groups/{group_id}/feedback_files"), headers=self._auth_header
-        )
-
-    def get_feedback_files_with_test_run_id(self, test_run_id: int) -> requests.Response:
-        """
-        Get the feedback files info associated with the test run.
-        """
-        return requests.get(
-            self._url(f"feedback_files?test_run_id={test_run_id}", headers=self._auth_header)
+            self._url(url), headers=self._auth_header, params=params
         )
 
     @parse_response("content")
@@ -240,6 +236,7 @@ class Markus:
         contents: Union[str, bytes],
         mime_type: Optional[str] = None,
         overwrite: bool = True,
+        test_run_id: Optional[int] = None,
     ) -> requests.Response:
         """
         Upload a feedback file to Markus.
@@ -254,7 +251,7 @@ class Markus:
         """
         url_content = f"assignments/{assignment_id}/groups/{group_id}/feedback_files"
         if overwrite:
-            feedback_files = self.get_feedback_files(assignment_id, group_id)
+            feedback_files = self.get_feedback_files(assignment_id, group_id, test_run_id)
             feedback_file_id = next((ff.get("id") for ff in feedback_files if ff.get("filename") == title), None)
             if feedback_file_id is not None:
                 url_content += f"/{feedback_file_id}"
@@ -262,28 +259,30 @@ class Markus:
                 overwrite = False
         files = {"file_content": (title, contents)}
         params = {"filename": title, "mime_type": mime_type or mimetypes.guess_type(title)[0]}
+        if test_run_id:
+            params['test_run_id'] = test_run_id
         return self._upload_feedback_file_internal(url_content, files, params, overwrite)
 
-    @parse_response("json")
-    def upload_feedback_file_with_test_run_id(
-        self,
-        test_run_id: int,
-        title: str,
-        contents: Union[str, bytes],
-        mime_type: Optional[str] = None,
-        overwrite: bool = True,
-    ) -> requests.Response:
-        url_content = f"feedback_files"
-        if overwrite:
-            feedback_files = self.get_feedback_files_with_test_run_id(test_run_id)
-            feedback_file_id = next((ff.get("id") for ff in feedback_files if ff.get("filename") == title), None)
-            if feedback_file_id is not None:
-                url_content += f"/{feedback_file_id}"
-            else:
-                overwrite = False
-        files = {"file_content": (title, contents)}
-        params = {"filename": title, "mime_type": mime_type or mimetypes.guess_type(title)[0], "test_run_id": test_run_id}
-        return self._upload_feedback_file_internal(url_content, files, params, False)
+    # @parse_response("json")
+    # def upload_feedback_file_with_test_run_id(
+    #     self,
+    #     test_run_id: int,
+    #     title: str,
+    #     contents: Union[str, bytes],
+    #     mime_type: Optional[str] = None,
+    #     overwrite: bool = True,
+    # ) -> requests.Response:
+    #     url_content = f"feedback_files"
+    #     if overwrite:
+    #         feedback_files = self.get_feedback_files_with_test_run_id(test_run_id)
+    #         feedback_file_id = next((ff.get("id") for ff in feedback_files if ff.get("filename") == title), None)
+    #         if feedback_file_id is not None:
+    #             url_content += f"/{feedback_file_id}"
+    #         else:
+    #             overwrite = False
+    #     files = {"file_content": (title, contents)}
+    #     params = {"filename": title, "mime_type": mime_type or mimetypes.guess_type(title)[0], "test_run_id": test_run_id}
+    #     return self._upload_feedback_file_internal(url_content, files, params, False)
 
     @parse_response("json")
     def upload_test_group_results(
