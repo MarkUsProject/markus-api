@@ -357,6 +357,12 @@ class TestUploadFeedbackFileReplace(AbstractTestClass):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
         yield api.upload_feedback_file(1, 1, "test.txt", "feedback info")
 
+    @staticmethod
+    @pytest.fixture
+    def test_call_with_test_run_id(api):
+        api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
+        yield api.upload_feedback_file(1, 1, "test.txt", "feedback info", test_run_id=1)
+
     def test_discovers_mime_type(self, api, response_mock):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
         api.upload_feedback_file(1, 1, "test.txt", "feedback info")
@@ -389,6 +395,12 @@ class TestUploadFeedbackFileNew(AbstractTestClass):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "other.txt"}])
         yield api.upload_feedback_file(1, 1, "test.txt", "feedback info")
 
+    @staticmethod
+    @pytest.fixture
+    def test_call_with_test_run_id(api):
+        api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
+        yield api.upload_feedback_file(1, 1, "test.txt", "feedback info", test_run_id=1)
+
 
 class TestUploadFeedbackFileNoOverwrite(TestUploadFeedbackFileNew):
     @staticmethod
@@ -397,17 +409,11 @@ class TestUploadFeedbackFileNoOverwrite(TestUploadFeedbackFileNew):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
         yield api.upload_feedback_file(1, 1, "test.txt", "feedback info", overwrite=False)
 
-
-class TestUploadFeedbackFileWithTestRunID(AbstractTestClass):
-    request_verb = "post"
-    response_format = "json"
-    url = "feedback_files"
-
     @staticmethod
     @pytest.fixture
-    def basic_call(api):
-        api.get_feedback_files_with_test_run_id = Mock(return_value=[{"id": 1, "filename": "other.txt"}])
-        yield api.upload_feedback_file_with_test_run_id(1, "test.txt", "feedback info")
+    def test_call_with_test_run_id(api):
+        api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
+        yield api.upload_feedback_file(1, 1, "test.txt", "feedback info", overwrite=False, test_run_id=1)
 
 
 class TestUploadTestGroupResultsJsonString(AbstractTestClass):

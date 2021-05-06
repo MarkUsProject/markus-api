@@ -113,12 +113,13 @@ class Markus:
         """
         Get the feedback files info associated with the assignment and group.
         """
-        url = f"assignments/{assignment_id}/groups/{group_id}/feedback_files"
-        params = dict()
-        if test_run_id:
-            params['test_run_id'] = test_run_id
+        params = {}
+        if test_run_id is not None:
+            params["test_run_id"] = test_run_id
         return requests.get(
-            self._url(url), headers=self._auth_header, params=params
+            self._url(f"assignments/{assignment_id}/groups/{group_id}/feedback_files"),
+            headers=self._auth_header,
+            params=params,
         )
 
     @parse_response("content")
@@ -211,7 +212,7 @@ class Markus:
         Get the marks spreadsheet associated with the given id.
         """
         return requests.get(self._url(f"grade_entry_forms/{spreadsheet_id}"), headers=self._auth_header)
-    
+
     @parse_response("json")
     def upload_feedback_file(
         self,
@@ -245,15 +246,12 @@ class Markus:
         files = {"file_content": (title, contents)}
         params = {"filename": title, "mime_type": mime_type or mimetypes.guess_type(title)[0]}
         if test_run_id:
-            params['test_run_id'] = test_run_id
-        if params["mime_type"] == None:
-            params["mime_type"] = "application/octet-stream"
+            params["test_run_id"] = test_run_id
 
         if overwrite:
-            response = requests.put(self._url(url_content), files=files, params=params, headers=self._auth_header)
+            return requests.put(self._url(url_content), files=files, params=params, headers=self._auth_header)
         else:
-            response = requests.post(self._url(url_content), files=files, params=params, headers=self._auth_header)
-        return response
+            return requests.post(self._url(url_content), files=files, params=params, headers=self._auth_header)
 
     @parse_response("json")
     def upload_test_group_results(
