@@ -65,35 +65,35 @@ class AbstractTestClass(abc.ABC):
         assert args[0] == f"{FAKE_URL}/api/{self.url}.json"
 
 
-class TestGetAllUsers(AbstractTestClass):
+class TestGetAllRoles(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "users"
+    url = "courses/1/roles"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        return api.get_all_users()
+        return api.get_all_roles(1)
 
 
-class TestNewUser(AbstractTestClass):
+class TestNewRole(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "users"
+    url = "courses/1/roles"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        return api.new_user("test", "Student", "first", "last", "section", "3")
+        return api.new_role("1", "test", "Student", "first", "last", "section", "3")
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.new_user("test", "Student", "first", "last")
+        api.new_role("1", "test", "Student", "first", "last")
         params = {"user_name": "test", "type": "Student", "first_name": "first", "last_name": "last"}
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == params
 
     def test_called_with_section(self, api, response_mock):
-        api.new_user("test", "Student", "first", "last", section_name="section")
+        api.new_role("1", "test", "Student", "first", "last", section_name="section")
         params = {
             "user_name": "test",
             "type": "Student",
@@ -105,7 +105,7 @@ class TestNewUser(AbstractTestClass):
         assert kwargs["params"] == params
 
     def test_called_with_grace_credits(self, api, response_mock):
-        api.new_user("test", "Student", "first", "last", grace_credits="3")
+        api.new_role("1", "test", "Student", "first", "last", grace_credits="3")
         params = {
             "user_name": "test",
             "type": "Student",
@@ -120,93 +120,93 @@ class TestNewUser(AbstractTestClass):
 class TestGetAssignments(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "assignments"
+    url = "courses/1/assignments"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_assignments()
+        yield api.get_assignments(1)
 
 
 class TestGetGroups(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "assignments/1/groups"
+    url = "courses/1/assignments/1/groups"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_groups(1)
+        yield api.get_groups(1, 1)
 
 
 class TestGetGroupsByName(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "assignments/1/groups/group_ids_by_name"
+    url = "courses/1/assignments/1/groups/group_ids_by_name"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_groups_by_name(1)
+        yield api.get_groups_by_name(1, 1)
 
 
 class TestGetGroup(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "assignments/1/groups/1"
+    url = "courses/1/assignments/1/groups/1"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_group(1, 1)
+        yield api.get_group(1, 1, 1)
 
 
 class TestGetFeedbackFiles(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "assignments/1/groups/1/feedback_files"
+    url = "courses/1/assignments/1/groups/1/feedback_files"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_feedback_files(1, 1)
+        yield api.get_feedback_files(1, 1, 1)
 
 
 class TestGetFeedbackFile(AbstractTestClass):
     request_verb = "get"
     response_format = "content"
-    url = "assignments/1/groups/1/feedback_files/1"
+    url = "courses/1/assignments/1/groups/1/feedback_files/1"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_feedback_file(1, 1, 1)
+        yield api.get_feedback_file(1, 1, 1, 1)
 
 
 class TestGetGradesSummary(AbstractTestClass):
     request_verb = "get"
     response_format = "text"
-    url = "assignments/1/grades_summary"
+    url = "courses/1/assignments/1/grades_summary"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_grades_summary(1)
+        yield api.get_grades_summary(1, 1)
 
 
 class TestNewMarksSpreadsheet(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "grade_entry_forms"
+    url = "courses/1/grade_entry_forms"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.new_marks_spreadsheet("test", "description", datetime.datetime.now())
+        yield api.new_marks_spreadsheet(1, "test", "description", datetime.datetime.now())
 
     def test_called_with_basic_params(self, api, response_mock):
         now = datetime.datetime.now()
-        api.new_marks_spreadsheet("test", "description", now)
+        api.new_marks_spreadsheet(1, "test", "description", now)
         params = {
             "short_identifier": "test",
             "description": "description",
@@ -220,7 +220,7 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
 
     def test_called_with_is_hidden(self, api, response_mock):
         now = datetime.datetime.now()
-        api.new_marks_spreadsheet("test", "description", now, is_hidden=False)
+        api.new_marks_spreadsheet(1, "test", "description", now, is_hidden=False)
         params = {
             "short_identifier": "test",
             "description": "description",
@@ -234,7 +234,7 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
 
     def test_called_with_is_show_total(self, api, response_mock):
         now = datetime.datetime.now()
-        api.new_marks_spreadsheet("test", "description", now, show_total=False)
+        api.new_marks_spreadsheet(1, "test", "description", now, show_total=False)
         params = {
             "short_identifier": "test",
             "description": "description",
@@ -249,7 +249,7 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
     def test_called_with_is_show_grade_entry_items(self, api, response_mock):
         now = datetime.datetime.now()
         ge_items = [{"name": "a", "out_of": 4}]
-        api.new_marks_spreadsheet("test", "description", now, grade_entry_items=ge_items)
+        api.new_marks_spreadsheet(1, "test", "description", now, grade_entry_items=ge_items)
         params = {
             "short_identifier": "test",
             "description": "description",
@@ -265,39 +265,40 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
 class TestUpdateMarksSpreadsheet(AbstractTestClass):
     request_verb = "put"
     response_format = "json"
-    url = "grade_entry_forms/1"
+    url = "courses/1/grade_entry_forms/1"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.update_marks_spreadsheet(1, "test", "description", datetime.datetime.now())
+        yield api.update_marks_spreadsheet(1, 1, "test", "description", datetime.datetime.now())
 
     def test_called_with_basic_params(self, api, response_mock):
         now = datetime.datetime.now()
-        api.update_marks_spreadsheet(1, "test", "description", now)
-        params = {"short_identifier": "test", "description": "description", "date": now}
+        api.update_marks_spreadsheet(1, 1, "test", "description", now)
+        params = {"course_id": 1, "short_identifier": "test", "description": "description", "date": now}
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == params
 
     def test_called_with_is_hidden(self, api, response_mock):
         now = datetime.datetime.now()
-        api.update_marks_spreadsheet(1, "test", "description", now, is_hidden=False)
-        params = {"short_identifier": "test", "description": "description", "date": now, "is_hidden": False}
+        api.update_marks_spreadsheet(1, 1, "test", "description", now, is_hidden=False)
+        params = {"course_id": 1, "short_identifier": "test", "description": "description", "date": now, "is_hidden": False}
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == params
 
     def test_called_with_is_show_total(self, api, response_mock):
         now = datetime.datetime.now()
-        api.update_marks_spreadsheet(1, "test", "description", now, show_total=False)
-        params = {"short_identifier": "test", "description": "description", "date": now, "show_total": False}
+        api.update_marks_spreadsheet(1, 1, "test", "description", now, show_total=False)
+        params = {"course_id": 1, "short_identifier": "test", "description": "description", "date": now, "show_total": False}
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == params
 
     def test_called_with_is_show_grade_entry_items(self, api, response_mock):
         now = datetime.datetime.now()
         ge_items = [{"name": "a", "out_of": 4}]
-        api.update_marks_spreadsheet(1, "test", "description", now, grade_entry_items=ge_items)
+        api.update_marks_spreadsheet(1, 1, "test", "description", now, grade_entry_items=ge_items)
         params = {
+            "course_id": 1,
             "short_identifier": "test",
             "description": "description",
             "date": now,
@@ -310,15 +311,15 @@ class TestUpdateMarksSpreadsheet(AbstractTestClass):
 class TestUpdateMarksSpreadsheetGrades(AbstractTestClass):
     request_verb = "put"
     response_format = "json"
-    url = "grade_entry_forms/1/update_grades"
+    url = "courses/1/grade_entry_forms/1/update_grades"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.update_marks_spreadsheets_grades(1, "some_user", {"some_column": 2})
+        yield api.update_marks_spreadsheets_grades(1, 1, "some_user", {"some_column": 2})
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.update_marks_spreadsheets_grades(1, "some_user", {"some_column": 2})
+        api.update_marks_spreadsheets_grades(1, 1, "some_user", {"some_column": 2})
         params = {"user_name": "some_user", "grade_entry_items": {"some_column": 2}}
         _, kwargs = response_mock.call_args
         assert kwargs["json"] == params
@@ -327,52 +328,52 @@ class TestUpdateMarksSpreadsheetGrades(AbstractTestClass):
 class TestGetMarksSpreadsheets(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "grade_entry_forms"
+    url = "courses/1/grade_entry_forms"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_marks_spreadsheets()
+        yield api.get_marks_spreadsheets(1)
 
 
 class TestGetMarksSpreadsheet(AbstractTestClass):
     request_verb = "get"
     response_format = "text"
-    url = "grade_entry_forms/1"
+    url = "courses/1/grade_entry_forms/1"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_marks_spreadsheet(1)
+        yield api.get_marks_spreadsheet(1, 1)
 
 
 class TestUploadFeedbackFileReplace(AbstractTestClass):
     request_verb = "put"
     response_format = "json"
-    url = "assignments/1/groups/1/feedback_files/1"
+    url = "courses/1/assignments/1/groups/1/feedback_files/1"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
-        yield api.upload_feedback_file(1, 1, "test.txt", "feedback info")
+        yield api.upload_feedback_file(1, 1, 1, "test.txt", "feedback info")
 
     def test_discovers_mime_type(self, api, response_mock):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
-        api.upload_feedback_file(1, 1, "test.txt", "feedback info")
+        api.upload_feedback_file(1, 1, 1, "test.txt", "feedback info")
         _, kwargs = response_mock.call_args
         assert kwargs["params"]["mime_type"] == "text/plain"
 
     def test_called_with_mime_type(self, api, response_mock):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
-        api.upload_feedback_file(1, 1, "test.txt", "feedback info", mime_type="application/octet-stream")
+        api.upload_feedback_file(1, 1, 1, "test.txt", "feedback info", mime_type="application/octet-stream")
         params = {"filename": "test.txt", "mime_type": "application/octet-stream"}
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == params
 
     def test_sends_file_data(self, api, response_mock):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
-        api.upload_feedback_file(1, 1, "test.txt", "feedback info")
+        api.upload_feedback_file(1, 1, 1, "test.txt", "feedback info")
         files = {"file_content": ("test.txt", "feedback info")}
         _, kwargs = response_mock.call_args
         assert kwargs["files"] == files
@@ -381,13 +382,13 @@ class TestUploadFeedbackFileReplace(AbstractTestClass):
 class TestUploadFeedbackFileNew(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/groups/1/feedback_files"
+    url = "courses/1/assignments/1/groups/1/feedback_files"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "other.txt"}])
-        yield api.upload_feedback_file(1, 1, "test.txt", "feedback info")
+        yield api.upload_feedback_file(1, 1, 1, "test.txt", "feedback info")
 
 
 class TestUploadFeedbackFileNoOverwrite(TestUploadFeedbackFileNew):
@@ -395,21 +396,21 @@ class TestUploadFeedbackFileNoOverwrite(TestUploadFeedbackFileNew):
     @pytest.fixture
     def basic_call(api):
         api.get_feedback_files = Mock(return_value=[{"id": 1, "filename": "test.txt"}])
-        yield api.upload_feedback_file(1, 1, "test.txt", "feedback info", overwrite=False)
+        yield api.upload_feedback_file(1, 1, 1, "test.txt", "feedback info", overwrite=False)
 
 
 class TestUploadTestGroupResultsJsonString(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/groups/1/test_group_results"
+    url = "courses/1/assignments/1/groups/1/test_group_results"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.upload_test_group_results(1, 1, 1, '{"data": []}')
+        yield api.upload_test_group_results(1, 1, 1, 1, '{"data": []}')
 
     def test_called_wth_basic_args(self, api, response_mock):
-        api.upload_test_group_results(1, 1, 1, '{"data": []}')
+        api.upload_test_group_results(1, 1, 1, 1, '{"data": []}')
         params = {"test_run_id": 1, "test_output": '{"data": []}'}
         _, kwargs = response_mock.call_args
         assert kwargs["json"] == params
@@ -418,15 +419,15 @@ class TestUploadTestGroupResultsJsonString(AbstractTestClass):
 class TestUploadTestGroupResultsDict(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/groups/1/test_group_results"
+    url = "courses/1/assignments/1/groups/1/test_group_results"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.upload_test_group_results(1, 1, 1, {"data": []})
+        yield api.upload_test_group_results(1, 1, 1, 1, {"data": []})
 
     def test_dict_changed_to_json_string(self, api, response_mock):
-        api.upload_test_group_results(1, 1, 1, {"data": []})
+        api.upload_test_group_results(1, 1, 1, 1, {"data": []})
         _, kwargs = response_mock.call_args
         assert kwargs["json"]["test_output"] == '{"data": []}'
 
@@ -434,7 +435,7 @@ class TestUploadTestGroupResultsDict(AbstractTestClass):
 class TestUploadAnnotations(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/groups/1/add_annotations"
+    url = "courses/1/assignments/1/groups/1/add_annotations"
     annotations = [
         {
             "filename": "test.txt",
@@ -450,16 +451,16 @@ class TestUploadAnnotations(AbstractTestClass):
     @classmethod
     @pytest.fixture
     def basic_call(cls, api):
-        yield api.upload_annotations(1, 1, cls.annotations)
+        yield api.upload_annotations(1, 1, 1, cls.annotations)
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.upload_annotations(1, 1, self.annotations)
+        api.upload_annotations(1, 1, 1, self.annotations)
         params = {"annotations": self.annotations, "force_complete": False}
         _, kwargs = response_mock.call_args
         assert kwargs["json"] == params
 
     def test_called_with_force_complete(self, api, response_mock):
-        api.upload_annotations(1, 1, self.annotations, True)
+        api.upload_annotations(1, 1, 1, self.annotations, True)
         params = {"annotations": self.annotations, "force_complete": True}
         _, kwargs = response_mock.call_args
         assert kwargs["json"] == params
@@ -468,26 +469,26 @@ class TestUploadAnnotations(AbstractTestClass):
 class TestGetAnnotations(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "assignments/1/groups/1/annotations"
+    url = "courses/1/assignments/1/groups/1/annotations"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_annotations(1, 1)
+        yield api.get_annotations(1, 1, 1)
 
 
 class TestUpdateMarksSingleGroup(AbstractTestClass):
     request_verb = "put"
     response_format = "json"
-    url = "assignments/1/groups/1/update_marks"
+    url = "courses/1/assignments/1/groups/1/update_marks"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.update_marks_single_group({"criteria_a": 10}, 1, 1)
+        yield api.update_marks_single_group(1, {"criteria_a": 10}, 1, 1)
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.update_marks_single_group({"criteria_a": 10}, 1, 1)
+        api.update_marks_single_group(1, {"criteria_a": 10}, 1, 1)
         _, kwargs = response_mock.call_args
         assert kwargs["json"] == {"criteria_a": 10}
 
@@ -495,15 +496,15 @@ class TestUpdateMarksSingleGroup(AbstractTestClass):
 class TestUpdateMarkingState(AbstractTestClass):
     request_verb = "put"
     response_format = "json"
-    url = "assignments/1/groups/1/update_marking_state"
+    url = "courses/1/assignments/1/groups/1/update_marking_state"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.update_marking_state(1, 1, "collected")
+        yield api.update_marking_state(1, 1, 1, "collected")
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.update_marking_state(1, 1, "collected")
+        api.update_marking_state(1, 1, 1, "collected")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"marking_state": "collected"}
 
@@ -511,15 +512,15 @@ class TestUpdateMarkingState(AbstractTestClass):
 class TestCreateExtraMarks(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/groups/1/create_extra_marks"
+    url = "courses/1/assignments/1/groups/1/create_extra_marks"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.create_extra_marks(1, 1, 10, "a bonus!")
+        yield api.create_extra_marks(1, 1, 1, 10, "a bonus!")
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.create_extra_marks(1, 1, 10, "a bonus!")
+        api.create_extra_marks(1, 1, 1, 10, "a bonus!")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"extra_marks": 10, "description": "a bonus!"}
 
@@ -527,15 +528,15 @@ class TestCreateExtraMarks(AbstractTestClass):
 class TestRemoveExtraMarks(AbstractTestClass):
     request_verb = "delete"
     response_format = "json"
-    url = "assignments/1/groups/1/remove_extra_marks"
+    url = "courses/1/assignments/1/groups/1/remove_extra_marks"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.remove_extra_marks(1, 1, 10, "a bonus!")
+        yield api.remove_extra_marks(1, 1, 1, 10, "a bonus!")
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.remove_extra_marks(1, 1, 10, "a bonus!")
+        api.remove_extra_marks(1, 1, 1, 10, "a bonus!")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"extra_marks": 10, "description": "a bonus!"}
 
@@ -543,25 +544,25 @@ class TestRemoveExtraMarks(AbstractTestClass):
 class TestGetFilesFromRepo(AbstractTestClass):
     request_verb = "get"
     response_format = "content"
-    url = "assignments/1/groups/1/submission_files"
+    url = "courses/1/assignments/1/groups/1/submission_files"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_files_from_repo(1, 1)
+        yield api.get_files_from_repo(1, 1, 1)
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.get_files_from_repo(1, 1)
+        api.get_files_from_repo(1, 1, 1)
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"collected": True}
 
     def test_called_with_collected(self, api, response_mock):
-        api.get_files_from_repo(1, 1, collected=False)
+        api.get_files_from_repo(1, 1, 1, collected=False)
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {}
 
     def test_called_with_filename(self, api, response_mock):
-        api.get_files_from_repo(1, 1, filename="test.txt")
+        api.get_files_from_repo(1, 1, 1, filename="test.txt")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"collected": True, "filename": "test.txt"}
 
@@ -569,15 +570,15 @@ class TestGetFilesFromRepo(AbstractTestClass):
 class TestUploadFolderToRepo(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/groups/1/submission_files/create_folders"
+    url = "courses/1/assignments/1/groups/1/submission_files/create_folders"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.upload_folder_to_repo(1, 1, "subdir")
+        yield api.upload_folder_to_repo(1, 1, 1, "subdir")
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.upload_folder_to_repo(1, 1, "subdir")
+        api.upload_folder_to_repo(1, 1, 1, "subdir")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"folder_path": "subdir"}
 
@@ -585,26 +586,26 @@ class TestUploadFolderToRepo(AbstractTestClass):
 class TestUploadFileToRepo(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/groups/1/submission_files"
+    url = "courses/1/assignments/1/groups/1/submission_files"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.upload_file_to_repo(1, 1, "test.txt", "some content")
+        yield api.upload_file_to_repo(1, 1, 1, "test.txt", "some content")
 
     def test_discovers_mime_type(self, api, response_mock):
-        api.upload_file_to_repo(1, 1, "test.txt", "some content")
+        api.upload_file_to_repo(1, 1, 1, "test.txt", "some content")
         _, kwargs = response_mock.call_args
         assert kwargs["params"]["mime_type"] == "text/plain"
 
     def test_called_with_mime_type(self, api, response_mock):
-        api.upload_file_to_repo(1, 1, "test.txt", "feedback info", mime_type="application/octet-stream")
+        api.upload_file_to_repo(1, 1, 1, "test.txt", "feedback info", mime_type="application/octet-stream")
         params = {"filename": "test.txt", "mime_type": "application/octet-stream"}
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == params
 
     def test_sends_file_data(self, api, response_mock):
-        api.upload_file_to_repo(1, 1, "test.txt", "some content")
+        api.upload_file_to_repo(1, 1, 1, "test.txt", "some content")
         files = {"file_content": ("test.txt", "some content")}
         _, kwargs = response_mock.call_args
         assert kwargs["files"] == files
@@ -613,15 +614,15 @@ class TestUploadFileToRepo(AbstractTestClass):
 class TestRemoveFileFromRepo(AbstractTestClass):
     request_verb = "delete"
     response_format = "json"
-    url = "assignments/1/groups/1/submission_files/remove_file"
+    url = "courses/1/assignments/1/groups/1/submission_files/remove_file"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.remove_file_from_repo(1, 1, "test.txt")
+        yield api.remove_file_from_repo(1, 1, 1, "test.txt")
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.remove_file_from_repo(1, 1, "test.txt")
+        api.remove_file_from_repo(1, 1, 1, "test.txt")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"filename": "test.txt"}
 
@@ -629,15 +630,15 @@ class TestRemoveFileFromRepo(AbstractTestClass):
 class TestRemoveFolderFromRepo(AbstractTestClass):
     request_verb = "delete"
     response_format = "json"
-    url = "assignments/1/groups/1/submission_files/remove_folder"
+    url = "courses/1/assignments/1/groups/1/submission_files/remove_folder"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.remove_folder_from_repo(1, 1, "subdir")
+        yield api.remove_folder_from_repo(1, 1, 1, "subdir")
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.remove_folder_from_repo(1, 1, "subdir")
+        api.remove_folder_from_repo(1, 1, 1, "subdir")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"folder_path": "subdir"}
 
@@ -645,27 +646,27 @@ class TestRemoveFolderFromRepo(AbstractTestClass):
 class TestGetTestSpecs(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "assignments/1/test_specs"
+    url = "courses/1/assignments/1/test_specs"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_test_specs(1)
+        yield api.get_test_specs(1, 1)
 
 
 class TestUpdateTestSpecs(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/update_test_specs"
+    url = "courses/1/assignments/1/update_test_specs"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.update_test_specs(1, {})
+        yield api.update_test_specs(1, 1, {})
 
     def test_called_with_basic_params(self, api, response_mock):
         specs = {"some": ["fake", "data"]}
-        api.update_test_specs(1, specs)
+        api.update_test_specs(1, 1, specs)
         _, kwargs = response_mock.call_args
         assert kwargs["json"] == {"specs": specs}
 
@@ -673,37 +674,37 @@ class TestUpdateTestSpecs(AbstractTestClass):
 class TestGetTestFiles(AbstractTestClass):
     request_verb = "get"
     response_format = "content"
-    url = "assignments/1/test_files"
+    url = "courses/1/assignments/1/test_files"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_test_files(1)
+        yield api.get_test_files(1, 1)
 
 
 class TestGetStarterFileEntries(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "assignments/1/starter_file_groups/1/entries"
+    url = "courses/1/assignments/1/starter_file_groups/1/entries"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_starter_file_entries(1, 1)
+        yield api.get_starter_file_entries(1, 1, 1)
 
 
 class TestCreateStarterFile(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/starter_file_groups/1/create_file"
+    url = "courses/1/assignments/1/starter_file_groups/1/create_file"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.create_starter_file(1, 1, "test.txt", "content")
+        yield api.create_starter_file(1, 1, 1, "test.txt", "content")
 
     def test_called_with_filename_and_content(self, api, response_mock):
-        api.create_starter_file(1, 1, file_path="test.txt", contents="content")
+        api.create_starter_file(1, 1, 1, file_path="test.txt", contents="content")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"filename": "test.txt"}
         assert kwargs["files"] == {"file_content": ("test.txt", "content")}
@@ -712,15 +713,15 @@ class TestCreateStarterFile(AbstractTestClass):
 class TestCreateStarterFolder(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/starter_file_groups/1/create_folder"
+    url = "courses/1/assignments/1/starter_file_groups/1/create_folder"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.create_starter_folder(1, 1, "subdir")
+        yield api.create_starter_folder(1, 1, 1, "subdir")
 
     def test_called_with_filename_and_content(self, api, response_mock):
-        api.create_starter_folder(1, 1, folder_path="subdir")
+        api.create_starter_folder(1, 1, 1, folder_path="subdir")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"folder_path": "subdir"}
 
@@ -728,15 +729,15 @@ class TestCreateStarterFolder(AbstractTestClass):
 class TestRemoveStarterFile(AbstractTestClass):
     request_verb = "delete"
     response_format = "json"
-    url = "assignments/1/starter_file_groups/1/remove_file"
+    url = "courses/1/assignments/1/starter_file_groups/1/remove_file"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.remove_starter_file(1, 1, "test.txt")
+        yield api.remove_starter_file(1, 1, 1, "test.txt")
 
     def test_called_with_filename(self, api, response_mock):
-        api.remove_starter_file(1, 1, file_path="test.txt")
+        api.remove_starter_file(1, 1, 1, file_path="test.txt")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"filename": "test.txt"}
 
@@ -744,15 +745,15 @@ class TestRemoveStarterFile(AbstractTestClass):
 class TestRemoveStarterFolder(AbstractTestClass):
     request_verb = "delete"
     response_format = "json"
-    url = "assignments/1/starter_file_groups/1/remove_folder"
+    url = "courses/1/assignments/1/starter_file_groups/1/remove_folder"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.remove_starter_folder(1, 1, "subdir")
+        yield api.remove_starter_folder(1, 1, 1, "subdir")
 
     def test_called_with_filename_and_content(self, api, response_mock):
-        api.remove_starter_folder(1, 1, folder_path="subdir")
+        api.remove_starter_folder(1, 1, 1, folder_path="subdir")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"folder_path": "subdir"}
 
@@ -760,69 +761,69 @@ class TestRemoveStarterFolder(AbstractTestClass):
 class TestDownloadStarterFileEntries(AbstractTestClass):
     request_verb = "get"
     response_format = "content"
-    url = "assignments/1/starter_file_groups/1/download_entries"
+    url = "courses/1/assignments/1/starter_file_groups/1/download_entries"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.download_starter_file_entries(1, 1)
+        yield api.download_starter_file_entries(1, 1, 1)
 
 
 class TestDownloadStarterFileGroups(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "assignments/1/starter_file_groups"
+    url = "courses/1/assignments/1/starter_file_groups"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_starter_file_groups(1)
+        yield api.get_starter_file_groups(1, 1)
 
 
 class TestCreateStarterFileGroup(AbstractTestClass):
     request_verb = "post"
     response_format = "json"
-    url = "assignments/1/starter_file_groups"
+    url = "courses/1/assignments/1/starter_file_groups"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.create_starter_file_group(1)
+        yield api.create_starter_file_group(1, 1)
 
 
 class TestGetStarterFileGroup(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
-    url = "assignments/1/starter_file_groups/1"
+    url = "courses/1/assignments/1/starter_file_groups/1"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.get_starter_file_group(1, 1)
+        yield api.get_starter_file_group(1, 1, 1)
 
 
 class TestUpdateStarterFileGroup(AbstractTestClass):
     request_verb = "put"
     response_format = "json"
-    url = "assignments/1/starter_file_groups/1"
+    url = "courses/1/assignments/1/starter_file_groups/1"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.update_starter_file_group(1, 1)
+        yield api.update_starter_file_group(1, 1, 1)
 
     def test_called_with_name(self, api, response_mock):
-        api.update_starter_file_group(1, 1, name="some_name")
+        api.update_starter_file_group(1, 1, 1, name="some_name")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"name": "some_name"}
 
     def test_called_with_entry_name(self, api, response_mock):
-        api.update_starter_file_group(1, 1, entry_rename="some_entry_name")
+        api.update_starter_file_group(1, 1, 1, entry_rename="some_entry_name")
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"entry_rename": "some_entry_name"}
 
     def test_called_with_use_rename(self, api, response_mock):
-        api.update_starter_file_group(1, 1, use_rename=True)
+        api.update_starter_file_group(1, 1, 1, use_rename=True)
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == {"use_rename": True}
 
@@ -830,9 +831,9 @@ class TestUpdateStarterFileGroup(AbstractTestClass):
 class TestDeleteStarterFileGroup(AbstractTestClass):
     request_verb = "delete"
     response_format = "json"
-    url = "assignments/1/starter_file_groups/1"
+    url = "courses/1/assignments/1/starter_file_groups/1"
 
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        yield api.delete_starter_file_group(1, 1)
+        yield api.delete_starter_file_group(1, 1, 1)
