@@ -46,6 +46,32 @@ class Markus:
     def _url(self, tail=""):
         return f"{self.url}/api/{tail}.json"
 
+
+    @parse_response("json")
+    def get_all_courses(self) -> requests.Response:
+        """
+        Return a list of every course in the Markus database.
+        Each course is a dictionary object with the keys
+        'id', 'name', 'display_name', 'is_hidden', 'autotest_setting_id'
+        """
+        return requests.get(self._url("courses"), headers=self._auth_header)
+
+    @parse_response("json")
+    def new_course(self,
+                   name: str,
+                   display_name: str,
+                   is_hidden: Optional[bool] = False,
+                   autotest_setting_id: Optional[int] = None) -> requests.Response:
+        """
+        Creates a new course in the MarkUs database.
+        Returns a list containing the response's status,
+        reason, and data.
+        """
+        params = {"name": name, "display_name": display_name, "is_hidden": is_hidden}
+        if autotest_setting_id is not None:
+            params["autotest_setting_id"] = autotest_setting_id
+        return requests.post(self._url("courses"), params=params, headers=self._auth_header)
+
     @parse_response("json")
     def get_all_users(self) -> requests.Response:
         """

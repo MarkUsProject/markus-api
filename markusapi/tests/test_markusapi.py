@@ -65,6 +65,58 @@ class AbstractTestClass(abc.ABC):
         assert args[0] == f"{FAKE_URL}/api/{self.url}.json"
 
 
+class TestGetAllCourses(AbstractTestClass):
+    request_verb = "get"
+    response_format = "json"
+    url = "courses"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        return api.get_all_courses()
+
+class TestNewCourse(AbstractTestClass):
+    request_verb = "post"
+    response_format = "json"
+    url = "courses"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.new_course("CSC108", "CSC 108 Winter 2022")
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.new_course('CSC108', 'CSC 108 Winter 2022')
+        params = {"name": "CSC108", "display_name": "CSC 108 Winter 2022", "is_hidden": False}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
+
+class TestGetAllUsers(AbstractTestClass):
+    request_verb = "get"
+    response_format = "json"
+    url = "users"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        return api.get_all_users()
+
+class TestNewUser(AbstractTestClass):
+    request_verb = "post"
+    response_format = "json"
+    url = "users"
+
+    @staticmethod
+    @pytest.fixture
+    def basic_call(api):
+        yield api.new_user("test", "EndUser", "first", "last")
+
+    def test_called_with_basic_params(self, api, response_mock):
+        api.new_user("test", "EndUser", "first", "last")
+        params = {"user_name": "test", "type": "EndUser", "first_name": "first", "last_name": "last"}
+        _, kwargs = response_mock.call_args
+        assert kwargs["params"] == params
+
 class TestGetAllRoles(AbstractTestClass):
     request_verb = "get"
     response_format = "json"
@@ -84,33 +136,29 @@ class TestNewRole(AbstractTestClass):
     @staticmethod
     @pytest.fixture
     def basic_call(api):
-        return api.new_role("1", "test", "Student", "first", "last", "section", "3")
+        return api.new_role("1", "test", "Student", "section", "3")
 
     def test_called_with_basic_params(self, api, response_mock):
-        api.new_role("1", "test", "Student", "first", "last")
-        params = {"user_name": "test", "type": "Student", "first_name": "first", "last_name": "last"}
+        api.new_role("1", "test", "Student")
+        params = {"user_name": "test", "type": "Student"}
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == params
 
     def test_called_with_section(self, api, response_mock):
-        api.new_role("1", "test", "Student", "first", "last", section_name="section")
+        api.new_role("1", "test", "Student", section_name="section")
         params = {
             "user_name": "test",
             "type": "Student",
-            "first_name": "first",
-            "last_name": "last",
             "section_name": "section",
         }
         _, kwargs = response_mock.call_args
         assert kwargs["params"] == params
 
     def test_called_with_grace_credits(self, api, response_mock):
-        api.new_role("1", "test", "Student", "first", "last", grace_credits="3")
+        api.new_role("1", "test", "Student", grace_credits="3")
         params = {
-            "user_name": "test",
             "type": "Student",
-            "first_name": "first",
-            "last_name": "last",
+            "user_name": "test",
             "grace_credits": "3",
         }
         _, kwargs = response_mock.call_args
