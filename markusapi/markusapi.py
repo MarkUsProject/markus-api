@@ -115,13 +115,14 @@ class Markus:
         user_type: str,
         section_name: Optional[str] = None,
         grace_credits: Optional[str] = None,
+        hidden: Optional[bool] = False,
     ) -> requests.Response:
         """
         Add a new role to a given course.
         Returns a list containing the response's status,
         reason, and data.
         """
-        params = {"type": user_type, "user_name": user_name}
+        params = {"type": user_type, "user_name": user_name, "hidden": hidden}
         if section_name is not None:
             params["section_name"] = section_name
         if grace_credits is not None:
@@ -286,7 +287,7 @@ class Markus:
         """
         url_content = f"courses/{course_id}/assignments/{assignment_id}/groups/{group_id}/feedback_files"
         if overwrite:
-            feedback_files = self.get_feedback_files(assignment_id, group_id)
+            feedback_files = self.get_feedback_files(course_id, assignment_id, group_id)
             feedback_file_id = next((ff.get("id") for ff in feedback_files if ff.get("filename") == title), None)
             if feedback_file_id is not None:
                 url_content += f"/{feedback_file_id}"
@@ -535,18 +536,18 @@ class Markus:
         return requests.get(self._url(f"courses/{course_id}/assignments/{assignment_id}/test_files"), headers=self._auth_header)
 
     @parse_response("json")
-    def get_starter_file_entries(self, course_id: int, assignment_id: int, starter_file_group_id: int) -> requests.Response:
+    def get_starter_file_entries(self, course_id: int, starter_file_group_id: int) -> requests.Response:
         """
         Return the name of all entries for a given starter file group. Entries are file or directory names.
         """
         return requests.get(
-            self._url(f"courses/{course_id}/assignments/{assignment_id}/starter_file_groups/{starter_file_group_id}/entries"),
+            self._url(f"courses/{course_id}/starter_file_groups/{starter_file_group_id}/entries"),
             headers=self._auth_header,
         )
 
     @parse_response("json")
     def create_starter_file(
-        self, course_id: int, assignment_id: int, starter_file_group_id: int, file_path: str, contents: Union[str, bytes]
+        self, course_id: int, starter_file_group_id: int, file_path: str, contents: Union[str, bytes]
     ) -> requests.Response:
         """
         Upload a starter file to the starter file group with id=<starter_file_group_id> for assignment with
@@ -555,7 +556,7 @@ class Markus:
         files = {"file_content": (file_path, contents)}
         params = {"filename": file_path}
         return requests.post(
-            self._url(f"courses/{course_id}/assignments/{assignment_id}/starter_file_groups/{starter_file_group_id}/create_file"),
+            self._url(f"courses/{course_id}/starter_file_groups/{starter_file_group_id}/create_file"),
             params=params,
             files=files,
             headers=self._auth_header,
@@ -563,35 +564,35 @@ class Markus:
 
     @parse_response("json")
     def create_starter_folder(
-        self, course_id: int, assignment_id: int, starter_file_group_id: int, folder_path: str
+        self, course_id: int, starter_file_group_id: int, folder_path: str
     ) -> requests.Response:
         """
-        Create a folder for the the starter file group with id=<starter_file_group_id> for assignment with
-        id=<assignment_id>. The file_path should be a relative path from the starter file group's root directory.
+        Create a folder for the the starter file group with id=<starter_file_group_id>.
+        The file_path should be a relative path from the starter file group's root directory.
         """
         params = {"folder_path": folder_path}
         return requests.post(
-            self._url(f"courses/{course_id}/assignments/{assignment_id}/starter_file_groups/{starter_file_group_id}/create_folder"),
+            self._url(f"courses/{course_id}/starter_file_groups/{starter_file_group_id}/create_folder"),
             params=params,
             headers=self._auth_header,
         )
 
     @parse_response("json")
-    def remove_starter_file(self, course_id: int, assignment_id: int, starter_file_group_id: int, file_path: str) -> requests.Response:
+    def remove_starter_file(self, course_id: int, starter_file_group_id: int, file_path: str) -> requests.Response:
         """
-        Remove a starter file from the starter file group with id=<starter_file_group_id> for assignment with
-        id=<assignment_id>. The file_path should be a relative path from the starter file group's root directory.
+        Remove a starter file from the starter file group with id=<starter_file_group_id>.
+        The file_path should be a relative path from the starter file group's root directory.
         """
         params = {"filename": file_path}
         return requests.delete(
-            self._url(f"courses/{course_id}/assignments/{assignment_id}/starter_file_groups/{starter_file_group_id}/remove_file"),
+            self._url(f"courses/{course_id}/starter_file_groups/{starter_file_group_id}/remove_file"),
             params=params,
             headers=self._auth_header,
         )
 
     @parse_response("json")
     def remove_starter_folder(
-        self, course_id: int, assignment_id: int, starter_file_group_id: int, folder_path: str
+        self, course_id: int, starter_file_group_id: int, folder_path: str
     ) -> requests.Response:
         """
         Remove a folder from the starter file group with id=<starter_file_group_id> for assignment with
@@ -599,19 +600,19 @@ class Markus:
         """
         params = {"folder_path": folder_path}
         return requests.delete(
-            self._url(f"courses/{course_id}/assignments/{assignment_id}/starter_file_groups/{starter_file_group_id}/remove_folder"),
+            self._url(f"courses/{course_id}/starter_file_groups/{starter_file_group_id}/remove_folder"),
             params=params,
             headers=self._auth_header,
         )
 
     @parse_response("content")
-    def download_starter_file_entries(self, course_id: int, assignment_id: int, starter_file_group_id: int) -> requests.Response:
+    def download_starter_file_entries(self, course_id: int, starter_file_group_id: int) -> requests.Response:
         """
         Return the content of a zipfile containing the content of all starter files from the starter file group with
         id=<starter_file_group_id>.
         """
         return requests.get(
-            self._url(f"courses/{course_id}/assignments/{assignment_id}/starter_file_groups/{starter_file_group_id}/download_entries"),
+            self._url(f"courses/{course_id}/starter_file_groups/{starter_file_group_id}/download_entries"),
             headers=self._auth_header,
         )
 
@@ -630,12 +631,12 @@ class Markus:
         return requests.post(self._url(f"courses/{course_id}/assignments/{assignment_id}/starter_file_groups"), headers=self._auth_header)
 
     @parse_response("json")
-    def get_starter_file_group(self, course_id: int, assignment_id: int, starter_file_group_id: int) -> requests.Response:
+    def get_starter_file_group(self, course_id: int, starter_file_group_id: int) -> requests.Response:
         """
-        Return the starter file group with id=<starter_file_group_id> for the assignment with id=<assignment_id>
+        Return the starter file group with id=<starter_file_group_id>
         """
         return requests.get(
-            self._url(f"courses/{course_id}/assignments/{assignment_id}/starter_file_groups/{starter_file_group_id}"),
+            self._url(f"courses/{course_id}/starter_file_groups/{starter_file_group_id}"),
             headers=self._auth_header,
         )
 
@@ -643,14 +644,13 @@ class Markus:
     def update_starter_file_group(
         self,
         course_id: int,
-        assignment_id: int,
         starter_file_group_id: int,
         name: Optional[str] = None,
         entry_rename: Optional[str] = None,
         use_rename: Optional[bool] = None,
     ) -> requests.Response:
         """
-        Update the starter file group with id=<starter_file_group_id> for the assignment with id=<assignment_id>
+        Update the starter file group with id=<starter_file_group_id>
         """
         params = {}
         if name is not None:
@@ -660,17 +660,17 @@ class Markus:
         if use_rename is not None:
             params["use_rename"] = use_rename
         return requests.put(
-            self._url(f"courses/{course_id}/assignments/{assignment_id}/starter_file_groups/{starter_file_group_id}"),
+            self._url(f"courses/{course_id}/starter_file_groups/{starter_file_group_id}"),
             params=params,
             headers=self._auth_header,
         )
 
     @parse_response("json")
-    def delete_starter_file_group(self, course_id: int, assignment_id: int, starter_file_group_id: int) -> requests.Response:
+    def delete_starter_file_group(self, course_id: int, starter_file_group_id: int) -> requests.Response:
         """
-        Delete the starter file group with id=<starter_file_group_id> for the assignment with id=<assignment_id>
+        Delete the starter file group with id=<starter_file_group_id>
         """
         return requests.delete(
-            self._url(f"courses/{course_id}/assignments/{assignment_id}/starter_file_groups/{starter_file_group_id}"),
+            self._url(f"courses/{course_id}/starter_file_groups/{starter_file_group_id}"),
             headers=self._auth_header,
         )
