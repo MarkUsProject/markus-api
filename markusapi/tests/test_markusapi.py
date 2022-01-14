@@ -449,39 +449,6 @@ class TestUploadFeedbackFileNoOverwrite(TestUploadFeedbackFileNew):
         yield api.upload_feedback_file(1, 1, 1, "test.txt", "feedback info", overwrite=False)
 
 
-class TestUploadTestGroupResultsJsonString(AbstractTestClass):
-    request_verb = "post"
-    response_format = "json"
-    url = "courses/1/assignments/1/groups/1/test_group_results"
-
-    @staticmethod
-    @pytest.fixture
-    def basic_call(api):
-        yield api.upload_test_group_results(1, 1, 1, 1, '{"data": []}')
-
-    def test_called_wth_basic_args(self, api, response_mock):
-        api.upload_test_group_results(1, 1, 1, 1, '{"data": []}')
-        params = {"test_run_id": 1, "test_output": '{"data": []}'}
-        _, kwargs = response_mock.call_args
-        assert kwargs["json"] == params
-
-
-class TestUploadTestGroupResultsDict(AbstractTestClass):
-    request_verb = "post"
-    response_format = "json"
-    url = "courses/1/assignments/1/groups/1/test_group_results"
-
-    @staticmethod
-    @pytest.fixture
-    def basic_call(api):
-        yield api.upload_test_group_results(1, 1, 1, 1, {"data": []})
-
-    def test_dict_changed_to_json_string(self, api, response_mock):
-        api.upload_test_group_results(1, 1, 1, 1, {"data": []})
-        _, kwargs = response_mock.call_args
-        assert kwargs["json"]["test_output"] == '{"data": []}'
-
-
 class TestUploadAnnotations(AbstractTestClass):
     request_verb = "post"
     response_format = "json"

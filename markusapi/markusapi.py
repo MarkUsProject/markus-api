@@ -300,19 +300,6 @@ class Markus:
         else:
             return requests.post(self._url(url_content), files=files, params=params, headers=self._auth_header)
 
-    @parse_response("json")
-    def upload_test_group_results(
-        self, course_id: int, assignment_id: int, group_id: int, test_run_id: int, test_output: Union[str, Dict]
-    ) -> requests.Response:
-        """ Upload test results to Markus """
-        if not isinstance(test_output, str):
-            test_output = json.dumps(test_output)
-        params = {"test_run_id": test_run_id, "test_output": test_output}
-        return requests.post(
-            self._url(f"courses/{course_id}/assignments/{assignment_id}/groups/{group_id}/test_group_results"),
-            json=params,
-            headers=self._auth_header,
-        )
 
     @parse_response("json")
     def upload_annotations(
