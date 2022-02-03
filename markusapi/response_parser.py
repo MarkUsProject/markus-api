@@ -1,5 +1,10 @@
+import json
 from functools import wraps
 from typing import List, Union, Dict, Callable
+
+
+class ResponseParsingException(Exception):
+    pass
 
 
 def parse_response(expected: str) -> Callable:
@@ -22,7 +27,10 @@ def parse_response(expected: str) -> Callable:
         def _f(*args, **kwargs):
             response = f(*args, **kwargs)
             if not response.ok or expected == "json":
-                return response.json()
+                try:
+                    return response.json()
+                except json.decoder.JSONDecodeError:
+                    raise ResponseParsingException(f"status: {response.status_code}\n\n{response.text}")
             if expected == "content":
                 return response.content
             if expected == "text":

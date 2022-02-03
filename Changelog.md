@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.3.0]
+- Update routes to conform with MarkUs version 2.0+ (#35)
+- Fixed bug where request errors were being hidden by json parsing errors (#34)
+
 ## [v0.2.1]
 - Added new methods for managing starter files (#29)
 

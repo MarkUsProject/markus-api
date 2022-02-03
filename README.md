@@ -16,6 +16,10 @@ $ pip install markusapi
 * the `url` of a running [MarkUs website](https://github.com/MarkUsProject/Markus)
 * your `api_key` (this can be obtained from the dashboard page of the MarkUs website)
 
+## Compatibility
+* version 0.2 of this package is compatible with MarkUs version < 2.0
+* version 0.3 of this package is compatible with MarkUs version >= 2.0
+
 ## Usage Example
 
 Create a new Markus Api object:
