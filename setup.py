@@ -5,7 +5,7 @@ with open("README.md") as fh:
 
 setuptools.setup(
     name="markusapi",
-    version="0.3.1",
+    version="0.3.0",
     author="Alessio Di Sandro, Misha Schwartz, Sam Maldonado",
     author_email="mschwa@cs.toronto.edu",
     description="Interface to interact with MarkUs API",
