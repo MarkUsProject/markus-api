@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/MarkUsProject/markus-api",
     packages=setuptools.find_packages(),
-    install_requires=["requests==2.24.0"],
+    install_requires=["requests==2.32.5"],
     tests_require=["pytest==5.3.1"],
     setup_requires=["pytest-runner"],
     classifiers=[

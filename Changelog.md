@@ -2,6 +2,7 @@
 
 ## [unreleased]
 - Fixed bug preventing creating/updating marks spreadsheets with nested grade items (#40)
+- Upgrade requests package (#43)
 
 ## [v0.3.0]
 - Update routes to conform with MarkUs version 2.0+ (#35)
