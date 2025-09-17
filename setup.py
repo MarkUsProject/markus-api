@@ -5,7 +5,7 @@ with open("README.md") as fh:
 
 setuptools.setup(
     name="markusapi",
-    version="0.3.0",
+    version="0.3.1",
     author="Alessio Di Sandro, Misha Schwartz, Sam Maldonado",
     author_email="mschwa@cs.toronto.edu",
     description="Interface to interact with MarkUs API",
@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/MarkUsProject/markus-api",
     packages=setuptools.find_packages(),
-    install_requires=["requests==2.24.0"],
+    install_requires=["requests==2.32.5"],
     tests_require=["pytest==5.3.1"],
     setup_requires=["pytest-runner"],
     classifiers=[
