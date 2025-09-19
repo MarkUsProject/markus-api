@@ -1,6 +1,8 @@
 # Changelog
 
 ## [unreleased]
+
+## [0.4.0]
 - Fixed bug preventing creating/updating marks spreadsheets with nested grade items (#40)
 - Upgrade requests package (#43)
 
