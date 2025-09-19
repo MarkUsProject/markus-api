@@ -208,7 +208,7 @@ class Markus:
             "show_total": show_total,
             "grade_entry_items": grade_entry_items,
         }
-        return requests.post(self._url(f"courses/{course_id}/grade_entry_forms"), params=params, headers=self._auth_header)
+        return requests.post(self._url(f"courses/{course_id}/grade_entry_forms"), json=params, headers=self._auth_header)
 
     @parse_response("json")
     def update_marks_spreadsheet(
@@ -237,7 +237,7 @@ class Markus:
         for name in list(params):
             if params[name] is None:
                 params.pop(name)
-        return requests.put(self._url(f"courses/{course_id}/grade_entry_forms/{spreadsheet_id}"), params=params, headers=self._auth_header)
+        return requests.put(self._url(f"courses/{course_id}/grade_entry_forms/{spreadsheet_id}"), json=params, headers=self._auth_header)
 
     @parse_response("json")
     def update_marks_spreadsheets_grades(

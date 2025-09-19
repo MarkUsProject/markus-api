@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.0]
+- Fixed bug preventing creating/updating marks spreadsheets with nested grade items (#40)
+- Upgrade requests package (#43)
+
 ## [v0.3.0]
 - Update routes to conform with MarkUs version 2.0+ (#35)
 - Fixed bug where request errors were being hidden by json parsing errors (#34)
