@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+- Adopt `uv` package manager and GitHub Actions for test and publish (#46, #47)
+
 ## [0.4.0]
 - Fixed bug preventing creating/updating marks spreadsheets with nested grade items (#40)
 - Upgrade requests package (#43)
