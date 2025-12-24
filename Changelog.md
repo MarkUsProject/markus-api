@@ -2,6 +2,7 @@
 
 ## [unreleased]
 
+## [0.5.0]
 - Adopt `uv` package manager and GitHub Actions for test and publish (#46, #47)
 
 ## [0.4.0]
