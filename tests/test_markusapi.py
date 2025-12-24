@@ -14,19 +14,17 @@ def api():
 
 
 class AbstractTestClass(abc.ABC):
-    @classmethod
     @pytest.fixture
-    def response_mock(cls):
-        with patch(f"requests.{cls.request_verb}") as mock:
+    def response_mock(self, request):
+        with patch(f"requests.{request.cls.request_verb}") as mock:
             type(mock.return_value).ok = PropertyMock(return_value=True)
             mock.return_value.content = "content"
             mock.return_value.text = "text"
             mock.return_value.json.return_value = "json"
             yield mock
 
-    @classmethod
     @pytest.fixture
-    def bad_response_mock(cls, response_mock):
+    def bad_response_mock(self, response_mock):
         type(response_mock.return_value).ok = PropertyMock(return_value=False)
         yield response_mock
 
@@ -266,7 +264,7 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
             "grade_entry_items": None,
         }
         _, kwargs = response_mock.call_args
-        assert kwargs["params"] == params
+        assert kwargs["json"] == params
 
     def test_called_with_is_hidden(self, api, response_mock):
         now = datetime.datetime.now()
@@ -280,7 +278,7 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
             "grade_entry_items": None,
         }
         _, kwargs = response_mock.call_args
-        assert kwargs["params"] == params
+        assert kwargs["json"] == params
 
     def test_called_with_is_show_total(self, api, response_mock):
         now = datetime.datetime.now()
@@ -294,7 +292,7 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
             "grade_entry_items": None,
         }
         _, kwargs = response_mock.call_args
-        assert kwargs["params"] == params
+        assert kwargs["json"] == params
 
     def test_called_with_is_show_grade_entry_items(self, api, response_mock):
         now = datetime.datetime.now()
@@ -309,7 +307,7 @@ class TestNewMarksSpreadsheet(AbstractTestClass):
             "grade_entry_items": ge_items,
         }
         _, kwargs = response_mock.call_args
-        assert kwargs["params"] == params
+        assert kwargs["json"] == params
 
 
 class TestUpdateMarksSpreadsheet(AbstractTestClass):
@@ -327,21 +325,21 @@ class TestUpdateMarksSpreadsheet(AbstractTestClass):
         api.update_marks_spreadsheet(1, 1, "test", "description", now)
         params = {"course_id": 1, "short_identifier": "test", "description": "description", "date": now}
         _, kwargs = response_mock.call_args
-        assert kwargs["params"] == params
+        assert kwargs["json"] == params
 
     def test_called_with_is_hidden(self, api, response_mock):
         now = datetime.datetime.now()
         api.update_marks_spreadsheet(1, 1, "test", "description", now, is_hidden=False)
         params = {"course_id": 1, "short_identifier": "test", "description": "description", "date": now, "is_hidden": False}
         _, kwargs = response_mock.call_args
-        assert kwargs["params"] == params
+        assert kwargs["json"] == params
 
     def test_called_with_is_show_total(self, api, response_mock):
         now = datetime.datetime.now()
         api.update_marks_spreadsheet(1, 1, "test", "description", now, show_total=False)
         params = {"course_id": 1, "short_identifier": "test", "description": "description", "date": now, "show_total": False}
         _, kwargs = response_mock.call_args
-        assert kwargs["params"] == params
+        assert kwargs["json"] == params
 
     def test_called_with_is_show_grade_entry_items(self, api, response_mock):
         now = datetime.datetime.now()
@@ -355,7 +353,7 @@ class TestUpdateMarksSpreadsheet(AbstractTestClass):
             "grade_entry_items": ge_items,
         }
         _, kwargs = response_mock.call_args
-        assert kwargs["params"] == params
+        assert kwargs["json"] == params
 
 
 class TestUpdateMarksSpreadsheetGrades(AbstractTestClass):
@@ -465,10 +463,9 @@ class TestUploadAnnotations(AbstractTestClass):
         }
     ]
 
-    @classmethod
     @pytest.fixture
-    def basic_call(cls, api):
-        yield api.upload_annotations(1, 1, 1, cls.annotations)
+    def basic_call(self, request, api):
+        yield api.upload_annotations(1, 1, 1, request.cls.annotations)
 
     def test_called_with_basic_params(self, api, response_mock):
         api.upload_annotations(1, 1, 1, self.annotations)
